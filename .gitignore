@@ -1,0 +1,26 @@
+# ── Secrets / environment ───────────────────────────────────────────────
+# Never commit real secrets. Commit .env.example instead.
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# ── Python (backend) ────────────────────────────────────────────────────
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ── Node / Vite (frontend) ──────────────────────────────────────────────
+node_modules/
+dist/
+.vite/
+
+# ── Editor / OS ─────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
