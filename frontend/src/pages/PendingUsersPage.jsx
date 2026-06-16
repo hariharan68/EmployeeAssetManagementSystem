@@ -4,7 +4,7 @@ import { getPendingUsers, approveUser, rejectUser, adminCreateUser } from "../ap
 import { getAllEmployees } from "../api/employeeApi";
 
 const EMPTY_NEW_USER = {
-  username: "", email: "", password: "", role: "User", EmployeeID: "",
+  username: "", email: "", password: "", role: "Admin", EmployeeID: "",
 };
 
 const PendingUsersPage = () => {
@@ -124,26 +124,6 @@ const PendingUsersPage = () => {
                   <input type="password" style={s.input} value={newUser.password} required
                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} />
                 </div>
-                <div style={s.formGroup}>
-                  <label style={s.label}>Role</label>
-                  <select style={s.input} value={newUser.role}
-                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
-                    <option value="User">User</option>
-                    <option value="Admin">Admin</option>
-                  </select>
-                </div>
-                <div style={s.formGroup}>
-                  <label style={s.label}>Link to Employee (optional)</label>
-                  <select style={s.input} value={newUser.EmployeeID}
-                    onChange={(e) => setNewUser({ ...newUser, EmployeeID: e.target.value })}>
-                    <option value="">None</option>
-                    {employees.map((emp) => (
-                      <option key={emp.EmployeeID} value={emp.EmployeeID}>
-                        {emp.EmployeeCode ? `${emp.EmployeeCode} — ` : ""}{emp.EmployeeName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
               {formError && <p style={s.errorBox}>{formError}</p>}
               <button type="submit" style={s.btnPrimary}>Create Account</button>
@@ -156,9 +136,10 @@ const PendingUsersPage = () => {
             <p style={s.loadingText}>Loading...</p>
           ) : pending.length === 0 ? (
             <div style={s.emptyState}>
-              <div style={s.emptyIcon}>{"✅"}</div>
-              <p style={s.emptyTitle}>No pending registrations</p>
-              <p style={s.emptyDesc}>New sign-ups will appear here for approval.</p>
+              <div style={s.emptyIcon}>🛡️</div>
+              <p style={s.emptyTitle}>No admins created yet</p>
+              <p style={s.emptyDesc}>Click <strong>+ Add Admin</strong> above to create a new admin account.</p>
+              <p style={s.emptyDesc}>Fill in the <strong>Username</strong>, <strong>Email</strong>, and <strong>Password</strong> — the account will be created with Admin access immediately.</p>
             </div>
           ) : (
             <table style={s.table}>
