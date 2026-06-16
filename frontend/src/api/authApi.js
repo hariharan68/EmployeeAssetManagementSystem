@@ -51,3 +51,19 @@ export const adminCreateUser = async (payload) => {
   const response = await axiosInstance.post("/api/auth/admin/create-user", payload);
   return response.data;
 };
+
+// Admin: generate login account for an employee
+export const generateEmployeeLogin = async (employeeId) => {
+  const response = await axiosInstance.post(`/api/auth/generate-login/${employeeId}`);
+  return response.data;
+};
+
+// Public: employee sets their own password for the first time
+export const setOwnPassword = async (email, password) => {
+  const response = await axiosInstance.post("/api/auth/set-password", { email, password });
+  return response.data;
+};
+export const getEmployeesWithLogins = async () => {
+  const response = await axiosInstance.get("/api/auth/employees-with-logins");
+  return response.data;
+};

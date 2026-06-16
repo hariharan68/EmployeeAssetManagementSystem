@@ -16,12 +16,12 @@ const Navbar = () => {
   const isAdmin = role === "Admin";
 
   const links = [
-    { path: "/dashboard", label: "Dashboard" },
-    { path: "/employees", label: "Employees" },
-    { path: "/assets", label: "Assets" },
-    { path: "/assignments", label: "Assignments" },
-    ...(isAdmin ? [{ path: "/approvals", label: "Approvals" }] : []),
-  ];
+  { path: "/dashboard", label: "Dashboard" },
+  { path: "/employees", label: "Employees" },
+  ...(isAdmin ? [{ path: "/assets",      label: "Assets" }]      : []),
+  { path: "/assignments", label: "Assignments" },
+  ...(isAdmin ? [{ path: "/approvals", label: "Approvals" }] : []),
+];
 
   return (
     <nav style={st.nav}>

@@ -4,6 +4,7 @@ import { getAllEmployees, createEmployee, deleteEmployee } from "../api/employee
 import { getAssignmentsByEmployee } from "../api/assignmentApi";
 import { downloadEmployeeReport, downloadEmployeesReport } from "../api/reportApi";
 import { useAuth } from "../context/AuthContext";
+import { generateEmployeeLogin, getEmployeesWithLogins } from "../api/authApi";
 
 const EmployeePage = () => {
   const { isAdmin } = useAuth();
@@ -14,6 +15,8 @@ const EmployeePage = () => {
   const [assignments, setAssignments] = useState([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [search, setSearch] = useState("");
+  const [loggedInEmps, setLoggedInEmps] = useState(new Set());
+  const [toast, setToast] = useState(null); // { msg, type: "success"|"error" }
 
   const [form, setForm] = useState({
     EmployeeCode: "", EmployeeName: "", Department: "",
@@ -22,7 +25,7 @@ const EmployeePage = () => {
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
 
-  useEffect(() => { fetchEmployees(); }, []);
+  useEffect(() => { fetchEmployees(); fetchLoggedInEmps(); }, []);
 
   const fetchEmployees = async () => {
     try {
@@ -31,6 +34,18 @@ const EmployeePage = () => {
       setEmployees(data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
+  };
+
+  const fetchLoggedInEmps = async () => {
+    try {
+      const ids = await getEmployeesWithLogins();
+      setLoggedInEmps(new Set(ids));
+    } catch (err) { console.error(err); }
+  };
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
   const handleFormChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -63,6 +78,21 @@ const EmployeePage = () => {
     finally { setLoadingAssets(false); }
   };
 
+  const handleGenerateLogin = async (emp) => {
+    if (loggedInEmps.has(emp.EmployeeID)) {
+      showToast(`Login already exists for ${emp.EmployeeName}`, "error");
+      return;
+    }
+    if (!window.confirm(`Create login account for ${emp.EmployeeName} (${emp.Email})?`)) return;
+    try {
+      const res = await generateEmployeeLogin(emp.EmployeeID);
+      setLoggedInEmps(prev => new Set([...prev, emp.EmployeeID]));
+      showToast(res.message, "success");
+    } catch (err) {
+      showToast(err.response?.data?.detail || "Failed to create login", "error");
+    }
+  };
+
   const filtered = employees.filter((e) =>
     (e.EmployeeName || "").toLowerCase().includes(search.toLowerCase()) ||
     (e.EmployeeCode || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -75,6 +105,17 @@ const EmployeePage = () => {
   return (
     <div style={s.page}>
       <Navbar />
+
+      {/* CENTERED TOAST */}
+      {toast && (
+        <div style={s.toastOverlay}>
+          <div style={{ ...s.toastBox, ...(toast.type === "error" ? s.toastError : s.toastSuccess) }}>
+            <span style={s.toastIcon}>{toast.type === "error" ? "⚠️" : "✅"}</span>
+            <span style={s.toastMsg}>{toast.msg}</span>
+          </div>
+        </div>
+      )}
+
       <div style={s.content}>
         {/* Header */}
         <div style={s.headerRow}>
@@ -130,7 +171,6 @@ const EmployeePage = () => {
         )}
 
         <div style={s.mainLayout}>
-          {/* Table */}
           <div style={s.tableCard}>
             {loading ? (
               <p style={s.loadingText}>Loading employees...</p>
@@ -144,48 +184,60 @@ const EmployeePage = () => {
               <table style={s.table}>
                 <thead>
                   <tr>
-                    {["Code", "Name", "Department", "Designation", "Email", "Mobile", "Status", "Actions"].map((h) => (
+                    {["Code", "Name", "Department", "Designation", "Email", "Mobile", "Create User", "Status", "Actions"].map((h) => (
                       <th key={h} style={s.th}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((emp) => (
-                    <tr key={emp.EmployeeID} style={{
-                      ...s.tr, ...(selectedEmployee?.EmployeeID === emp.EmployeeID ? s.trSelected : {}),
-                    }}>
-                      <td style={s.td}><span style={s.codeBadge}>{emp.EmployeeCode || "-"}</span></td>
-                      <td style={{ ...s.td, fontWeight: "600", color: "#0f172a" }}>{emp.EmployeeName}</td>
-                      <td style={s.td}>{emp.Department || "-"}</td>
-                      <td style={s.td}>{emp.Designation || "-"}</td>
-                      <td style={s.td}>{emp.Email || "-"}</td>
-                      <td style={s.td}>{emp.Mobile || "-"}</td>
-                      <td style={s.td}>
-                        <span style={emp.IsActive ? s.badgeActive : s.badgeInactive}>
-                          {emp.IsActive ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td style={s.td}>
-                        <div style={s.actionBtns}>
-                          <button style={s.btnView} onClick={() => handleViewAssets(emp)}>View Assets</button>
+                  {filtered.map((emp) => {
+                    const hasLogin = loggedInEmps.has(emp.EmployeeID);
+                    return (
+                      <tr key={emp.EmployeeID} style={{
+                        ...s.tr, ...(selectedEmployee?.EmployeeID === emp.EmployeeID ? s.trSelected : {}),
+                      }}>
+                        <td style={s.td}><span style={s.codeBadge}>{emp.EmployeeCode || "-"}</span></td>
+                        <td style={{ ...s.td, fontWeight: "600", color: "#0f172a" }}>{emp.EmployeeName}</td>
+                        <td style={s.td}>{emp.Department || "-"}</td>
+                        <td style={s.td}>{emp.Designation || "-"}</td>
+                        <td style={s.td}>{emp.Email || "-"}</td>
+                        <td style={s.td}>{emp.Mobile || "-"}</td>
+                        <td style={s.td}>
                           {isAdmin && (
-                            <button style={s.btnReport} onClick={() => downloadEmployeeReport(emp.EmployeeID, emp.EmployeeCode)}>
-                              Report
+                            <button
+                              style={hasLogin ? s.btnLoginDone : s.btnGenLogin}
+                              onClick={() => handleGenerateLogin(emp)}
+                            >
+                              {hasLogin ? "Login Created" : "Generate Login"}
                             </button>
                           )}
-                          {isAdmin && (
-                            <button style={s.btnDelete} onClick={() => handleDelete(emp.EmployeeID)}>Deactivate</button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td style={s.td}>
+                          <span style={emp.IsActive ? s.badgeActive : s.badgeInactive}>
+                            {emp.IsActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td style={s.td}>
+                          <div style={s.actionBtns}>
+                            <button style={s.btnView} onClick={() => handleViewAssets(emp)}>View Assets</button>
+                            {isAdmin && (
+                              <button style={s.btnReport} onClick={() => downloadEmployeeReport(emp.EmployeeID, emp.EmployeeCode)}>
+                                Report
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button style={s.btnDelete} onClick={() => handleDelete(emp.EmployeeID)}>Deactivate</button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
           </div>
 
-          {/* Side Panel */}
           {selectedEmployee && (
             <div style={s.sidePanel}>
               <div style={s.sidePanelHeader}>
@@ -195,7 +247,6 @@ const EmployeePage = () => {
                 </div>
                 <button style={s.btnClose} onClick={() => setSelectedEmployee(null)}>&#10005;</button>
               </div>
-
               {loadingAssets ? (
                 <p style={s.loadingText}>Loading...</p>
               ) : assignments.length === 0 ? (
@@ -315,14 +366,20 @@ const s = {
     padding: "6px 12px", borderRadius: "7px", border: "1.5px solid #bbf7d0",
     background: "#f0fdf4", color: "#059669", fontSize: "12px", fontWeight: "700", cursor: "pointer",
   },
+  btnGenLogin: {
+    padding: "6px 14px", borderRadius: "7px", border: "none",
+    background: "#16a34a", color: "#fff", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+  },
+  btnLoginDone: {
+    padding: "6px 14px", borderRadius: "7px", border: "none",
+    background: "#dc2626", color: "#fff", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+  },
   emptyState: { padding: "60px 24px", textAlign: "center" },
   emptyIcon: { fontSize: "40px", marginBottom: "12px" },
   emptyTitle: { fontSize: "16px", fontWeight: "700", color: "#64748b", marginBottom: "4px" },
   emptyDesc: { fontSize: "13px", color: "#94a3b8" },
   emptySmall: { padding: "24px", color: "#64748b", fontSize: "13px", textAlign: "center" },
   loadingText: { padding: "24px", color: "#64748b", textAlign: "center", fontSize: "13px" },
-
-  // Side Panel
   sidePanel: {
     width: "340px", background: "#ffffff", border: "1.5px solid #e2e8f0", borderRadius: "14px",
     padding: "20px", flexShrink: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
@@ -360,6 +417,27 @@ const s = {
     padding: "3px 8px", borderRadius: "5px", fontSize: "10px", fontWeight: "700",
     background: "rgba(100,116,139,0.08)", color: "#64748b",
   },
+
+  // Toast styles
+  toastOverlay: {
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    zIndex: 9999, pointerEvents: "none",
+  },
+  toastBox: {
+    display: "flex", alignItems: "center", gap: "12px",
+    padding: "18px 28px", borderRadius: "14px", fontSize: "15px", fontWeight: "600",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.18)", pointerEvents: "auto",
+    animation: "fadeIn 0.2s ease",
+  },
+  toastSuccess: {
+    background: "#f0fdf4", border: "1.5px solid #86efac", color: "#166534",
+  },
+  toastError: {
+    background: "#fef2f2", border: "1.5px solid #fca5a5", color: "#991b1b",
+  },
+  toastIcon: { fontSize: "20px" },
+  toastMsg:  { fontSize: "14px" },
 };
 
 export default EmployeePage;

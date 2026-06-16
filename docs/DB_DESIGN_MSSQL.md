@@ -13,10 +13,12 @@
 │ UserID      PK INT   │
 │ Username    NVARCHAR │
 │ Email       NVARCHAR │
-│ PasswordHash NVARCHAR│
+│ PasswordHash NVARCHAR│  ← NULL until employee sets password
 │ Role        NVARCHAR │  ← 'Admin' | 'User'
 │ IsActive    BIT      │
-│ CreatedAt   DATETIME │
+│ IsApproved  BIT      │  ← 0 = pending, 1 = approved
+│ EmployeeID  FK INT   │  ← links to Employees (nullable)
+│ CreatedDate DATETIME │
 └──────────────────────┘
 
 ┌──────────────────────┐         ┌──────────────────────┐
@@ -74,14 +76,20 @@ CREATE TABLE Users (
     UserID        INT            IDENTITY(1,1) PRIMARY KEY,
     Username      NVARCHAR(100)  NOT NULL,
     Email         NVARCHAR(255)  NOT NULL,
-    PasswordHash  NVARCHAR(255)  NOT NULL,
+    PasswordHash  NVARCHAR(255)  NULL,        -- NULL until employee sets own password
     Role          NVARCHAR(20)   NOT NULL DEFAULT 'User',
     IsActive      BIT            NOT NULL DEFAULT 1,
-    CreatedAt     DATETIME       NOT NULL DEFAULT GETDATE(),
+    IsApproved    BIT            NOT NULL DEFAULT 0,  -- 0 = pending approval
+    EmployeeID    INT            NULL,        -- FK to Employees, set on approval
+    CreatedDate   DATETIME       NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT UQ_Users_Email    UNIQUE (Email),
     CONSTRAINT UQ_Users_Username UNIQUE (Username),
-    CONSTRAINT CK_Users_Role     CHECK  (Role IN ('Admin', 'User'))
+    CONSTRAINT CK_Users_Role     CHECK  (Role IN ('Admin', 'User')),
+    CONSTRAINT FK_Users_EmployeeID FOREIGN KEY (EmployeeID)
+        REFERENCES Employees (EmployeeID)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
 );
 GO
 ```
@@ -216,14 +224,15 @@ GO
 ## Seed Data
 
 ```sql
--- Insert default Admin user
+-- Insert default Admin user (IsApproved = 1 — admin accounts skip approval)
 -- Password: Admin@123 (bcrypt hashed — replace hash below with real bcrypt output)
-INSERT INTO Users (Username, Email, PasswordHash, Role, IsActive)
+INSERT INTO Users (Username, Email, PasswordHash, Role, IsActive, IsApproved)
 VALUES (
     'admin',
     'admin@company.com',
     '$2b$12$REPLACE_WITH_REAL_BCRYPT_HASH',
     'Admin',
+    1,
     1
 );
 
@@ -246,17 +255,18 @@ SELECT UserID FROM Users WHERE Email    = 'user@example.com';
 SELECT UserID FROM Users WHERE Username = 'john_doe';
 ```
 
-### 2. Register User — Insert
+### 2. Register User — Insert (pending approval)
 ```sql
-INSERT INTO Users (Username, Email, PasswordHash, Role, IsActive)
-VALUES ('john_doe', 'john@example.com', '<bcrypt_hash>', 'User', 1);
+INSERT INTO Users (Username, Email, PasswordHash, Role, IsActive, IsApproved)
+VALUES ('john_doe', 'john@example.com', '<bcrypt_hash>', 'User', 1, 0);
 ```
 
-### 3. Login — Fetch user
+### 3. Login — Fetch user (must be active AND approved AND have password set)
 ```sql
-SELECT UserID, Username, Email, PasswordHash, Role, IsActive
+SELECT UserID, Username, Email, PasswordHash, Role, IsActive, IsApproved
 FROM   Users
 WHERE  Email = 'john@example.com' AND IsActive = 1;
+-- Backend then checks: IsApproved = 1 and PasswordHash IS NOT NULL
 ```
 
 ### 4. Auth middleware — Verify token user
@@ -446,6 +456,52 @@ WHERE ea.EmployeeID = 5
 ORDER BY ea.AssignedDate DESC;
 ```
 
+### 23. List pending users (IsApproved = 0)
+```sql
+SELECT UserID, Username, Email, CreatedDate
+FROM Users
+WHERE IsApproved = 0 AND IsActive = 1
+ORDER BY CreatedDate DESC;
+```
+
+### 24. Approve user — link to employee
+```sql
+UPDATE Users SET IsApproved = 1, EmployeeID = 5 WHERE UserID = 12;
+```
+
+### 25. Reject user — soft deactivate
+```sql
+UPDATE Users SET IsActive = 0 WHERE UserID = 12;
+```
+
+### 26. Admin create user directly (pre-approved)
+```sql
+INSERT INTO Users (Username, Email, PasswordHash, Role, IsActive, IsApproved, EmployeeID)
+VALUES ('jane_doe', 'jane@company.com', '<bcrypt_hash>', 'User', 1, 1, 7);
+```
+
+### 27. Generate login for existing employee (password set later)
+```sql
+INSERT INTO Users (Username, Email, PasswordHash, Role, IsActive, IsApproved, EmployeeID)
+VALUES ('janedoe', 'jane@company.com', NULL, 'User', 1, 1, 7);
+```
+
+### 28. Employee sets own password for first time
+```sql
+-- Check: account exists, is active, approved, and has no password yet
+SELECT UserID, PasswordHash FROM Users
+WHERE Email = 'jane@company.com' AND IsActive = 1 AND IsApproved = 1;
+
+-- Set password (only if PasswordHash IS NULL)
+UPDATE Users SET PasswordHash = '<bcrypt_hash>' WHERE UserID = 15;
+```
+
+### 29. Get employee IDs that already have logins
+```sql
+SELECT EmployeeID FROM Users
+WHERE EmployeeID IS NOT NULL AND IsActive = 1;
+```
+
 ---
 
 ## Useful Admin / Reporting Queries
@@ -535,3 +591,6 @@ ORDER BY ea.AssignedDate DESC;
 - `Assets.GroupID` is nullable — assets can exist without a group.
 - The `EmployeeAssets.IsReturned` bit (0/1) drives the active assignment logic.
 - The backend uses **Windows Authentication** (`mssql+pyodbc://@SERVER/DB`) — no SQL username/password in the connection string.
+- `Users.IsApproved` controls the two-step registration flow: self-registered users start at `0` and need admin approval before they can log in.
+- `Users.PasswordHash` is nullable — employee-generated logins are inserted with `NULL` and the employee sets their own password via `/api/auth/set-password`.
+- `Users.EmployeeID` links a login account to an `Employees` record; set either at approval time or when an admin creates the user directly.

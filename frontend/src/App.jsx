@@ -38,9 +38,9 @@ const App = () => {
           <Route
             path="/assets"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <AssetPage />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route

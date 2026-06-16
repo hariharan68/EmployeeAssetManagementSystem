@@ -120,3 +120,39 @@ def reject_user(
     )
     db.commit()
     return {"message": "User rejected"}
+
+# ── Admin: generate login for an existing employee ─────────────────────────
+@router.post("/generate-login/{employee_id}", status_code=201)
+def generate_login(
+    employee_id:  int,
+    db:           Session = Depends(get_db),
+    current_user: dict    = Depends(require_admin)
+):
+    message, error = service.generate_login_for_employee(db, employee_id)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    return {"message": message}
+
+
+# ── Public: employee sets their own password (first time) ──────────────────
+class SetPasswordRequest(BaseModel):
+    email:    str
+    password: str
+
+@router.post("/set-password")
+def set_password(body: SetPasswordRequest, db: Session = Depends(get_db)):
+    message, error = service.set_own_password(db, body.email, body.password)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    return {"message": message}
+
+@router.get("/employees-with-logins")
+def get_employees_with_logins(
+    db:           Session = Depends(get_db),
+    current_user: dict    = Depends(require_admin)
+):
+    rows = db.execute(text("""
+        SELECT EmployeeID FROM Users
+        WHERE EmployeeID IS NOT NULL AND IsActive = 1
+    """)).fetchall()
+    return [r[0] for r in rows]

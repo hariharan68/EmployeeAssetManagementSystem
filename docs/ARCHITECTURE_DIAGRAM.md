@@ -42,7 +42,14 @@
 │  │  register   │  │  asset_groups│  │  ↑ fetches user from DB  │   │
 │  │  login      │  └──────┬───────┘  │                          │   │
 │  │  /me        │         │          │  require_admin()         │   │
-│  └──────┬──────┘         │          │  ↑ checks Role = 'Admin' │   │
+│  │  pending    │         │          │  ↑ checks Role = 'Admin' │   │
+│  │  approve    │         │          └──────────────────────────┘   │
+│  │  reject     │                                                   │
+│  │  admin/     │                                                   │
+│  │  create-user│                                                   │
+│  │  gen-login  │                                                   │
+│  │  set-passwd │                                                   │
+│  └──────┬──────┘         │                                         │
 │         │                │          └──────────────────────────┘   │
 │         │                │                                         │
 │  ┌──────▼────────────────▼─────────────────────────────────────┐   │
@@ -91,6 +98,8 @@ Client                         FastAPI                          MSSQL
   │── POST /api/auth/login ──────►│                               │
   │   { email, password }         │── SELECT user WHERE email ──► │
   │                               │◄─ user row ───────────────────│
+  │                               │   check IsApproved = 1        │
+  │                               │   check PasswordHash NOT NULL │
   │                               │   verify bcrypt hash          │
   │                               │   create JWT (8h, HS256)      │
   │◄── { access_token, role } ────│                               │
@@ -231,11 +240,12 @@ Empassetmanagement/
         │   ├── ProtectedRoute.jsx
         │   └── AdminRoute.jsx
         └── pages/
-            ├── LoginPage.jsx
+            ├── LoginPage.jsx        ← Sign In + Set Password tabs
             ├── DashboardPage.jsx
-            ├── EmployeePage.jsx
+            ├── EmployeePage.jsx     ← includes Generate Login per employee (Admin)
             ├── AssetPage.jsx
-            └── AssignmentPage.jsx
+            ├── AssignmentPage.jsx
+            └── PendingUsersPage.jsx ← Admin: approve / reject registrations
 ```
 
 ---
@@ -246,7 +256,14 @@ Empassetmanagement/
 |----------------|--------|---------------------------------------|---------------|
 | Auth           | POST   | /api/auth/register                    | None          |
 | Auth           | POST   | /api/auth/login                       | None          |
+| Auth           | POST   | /api/auth/set-password                | None          |
 | Auth           | GET    | /api/auth/me                          | User          |
+| Auth           | GET    | /api/auth/pending                     | Admin         |
+| Auth           | PUT    | /api/auth/approve/{user_id}           | Admin         |
+| Auth           | DELETE | /api/auth/reject/{user_id}            | Admin         |
+| Auth           | POST   | /api/auth/admin/create-user           | Admin         |
+| Auth           | POST   | /api/auth/generate-login/{emp_id}     | Admin         |
+| Auth           | GET    | /api/auth/employees-with-logins       | Admin         |
 | Employees      | GET    | /api/employees/                       | User          |
 | Employees      | GET    | /api/employees/{id}                   | User          |
 | Employees      | GET    | /api/employees/{id}/assets            | User          |
