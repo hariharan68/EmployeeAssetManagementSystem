@@ -63,14 +63,15 @@ The **Employee Asset Management System** is a full-stack web application that al
 - **Actor**: Authenticated User (any role)
 - **Trigger**: Navigate to `/dashboard`
 - **Flow**: Frontend fetches employees, assets, and assignments in parallel → computes stats
-- **Stats shown**:
-  - Total Employees
-  - Total Assets
-  - Available Assets (Status = 'Available')
-  - Assigned Assets (Status = 'Assigned')
-  - Total Assignments
-  - Active Assignments (IsReturned = 0)
-- **Also shows**: Last 6 recent assignments table + Quick Action buttons
+- **Admin view**:
+  - Welcome banner with username and role indicator
+  - 6 stat cards (clickable, navigate to relevant page): Total Employees, Total Assets, Available Assets, Assigned Assets, Total Assignments, Active Assignments
+  - Recent assignments table (last 6 records) with a "View All →" link
+  - Quick Actions sidebar: Add Employee, Add Asset, Assign Asset, View All Assets
+- **User (non-Admin) view**:
+  - Welcome banner with username and role indicator
+  - Recent assignments table (last 6 records) only — no stat cards, no "View All" link, no Quick Actions sidebar
+- **Note**: Stat cards and Quick Actions panel are hidden from regular Users in the frontend; data is still fetched but not rendered
 
 ---
 
@@ -152,6 +153,9 @@ The **Employee Asset Management System** is a full-stack web application that al
 - **Trigger**: GET `/api/assignments/` or GET `/api/assignments/employee/{id}`
 - **All assignments**: Returns joined data — Employee Name, Department, Asset Name, Asset Type, Assigned/Returned dates
 - **By employee**: Filtered view with full asset details per assignment record
+- **Frontend UI by role**:
+  - **Admin**: Sees full table including an **Actions** column with a "Return" button on each active assignment; also sees the "+ Assign Asset" button to open the assign form
+  - **User**: Sees the same assignment table but the Actions column is hidden — no Return button, no Assign form button
 
 ---
 
@@ -167,7 +171,7 @@ The **Employee Asset Management System** is a full-stack web application that al
 
 - **Approve flow**: Sets `IsApproved = 1` and links `EmployeeID` on the `Users` row → user can now log in
 - **Reject flow**: Sets `IsActive = 0` (soft delete) — user cannot log in or re-register with same email
-- **Frontend**: `/approvals` → `PendingUsersPage` (Admin-only route)
+- **Frontend**: `/approvals` → `PendingUsersPage` (Admin-only route); page header action button labelled "+ Add Admin" (creates a new Admin or User account directly)
 
 ---
 
@@ -228,10 +232,10 @@ The **Employee Asset Management System** is a full-stack web application that al
 | Route          | Page              | Auth Guard      | Purpose                                                  |
 |----------------|-------------------|-----------------|----------------------------------------------------------|
 | `/login`       | LoginPage         | Public          | Sign In tab + Set Password tab (first-time employees)    |
-| `/dashboard`   | DashboardPage     | ProtectedRoute  | Stats overview + recent assignments                      |
+| `/dashboard`   | DashboardPage     | ProtectedRoute  | Welcome banner + recent assignments (all users); stat cards + Quick Actions panel (Admin only) |
 | `/employees`   | EmployeePage      | ProtectedRoute  | Employee list; Admin can add, deactivate, generate login |
 | `/assets`      | AdminRoute        | Admin only      | Asset list with status filter, create/edit/delete        |
-| `/assignments` | AssignmentPage    | ProtectedRoute  | Assignment list; Admin can assign/return                 |
+| `/assignments` | AssignmentPage    | ProtectedRoute  | Assignment list (all users); Admin can assign assets and return them via Actions column |
 | `/approvals`   | PendingUsersPage  | AdminRoute      | Approve or reject self-registered users                  |
 
 - **ProtectedRoute** — redirects to `/login` if no valid token (any authenticated user).
@@ -246,3 +250,21 @@ The **Employee Asset Management System** is a full-stack web application that al
 | Assets      | —    | ✓     |
 | Assignments | ✓    | ✓     |
 | Approvals   | —    | ✓     |
+
+### In-page action visibility by role
+
+| Page        | Feature                              | User | Admin |
+|-------------|--------------------------------------|------|-------|
+| Dashboard   | Stat cards (6 metrics)               | —    | ✓     |
+| Dashboard   | Quick Actions sidebar                | —    | ✓     |
+| Dashboard   | "View All →" link in assignments     | —    | ✓     |
+| Dashboard   | Recent assignments table             | ✓    | ✓     |
+| Employees   | View Assets (side panel)             | ✓    | ✓     |
+| Employees   | Add Employee form / button           | —    | ✓     |
+| Employees   | Generate Login button (per row)      | —    | ✓     |
+| Employees   | Download Report button (per row)     | —    | ✓     |
+| Employees   | Deactivate button (per row)          | —    | ✓     |
+| Employees   | Download All PDF button              | —    | ✓     |
+| Assignments | Assignments table (read)             | ✓    | ✓     |
+| Assignments | "+ Assign Asset" button + form       | —    | ✓     |
+| Assignments | Actions column (Return button)       | —    | ✓     |

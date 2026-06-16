@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const DashboardPage = () => {
-  const { username, role } = useAuth();
+  const { username, role, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({
@@ -41,21 +41,21 @@ const DashboardPage = () => {
   };
 
   const cards = [
-    { title: "Total Employees", value: stats.totalEmployees, color: "#2563eb", icon: "\uD83D\uDC65", path: "/employees" },
-    { title: "Total Assets", value: stats.totalAssets, color: "#5110c1", icon: "\uD83D\uDCBB", path: "/assets" },
-    { title: "Available", value: stats.availableAssets, color: "#059669", icon: "\u2705", path: "/assets" },
-    { title: "Assigned", value: stats.assignedAssets, color: "#d97706", icon: "\uD83D\uDCE6", path: "/assignments" },
+    { title: "Total Employees",   value: stats.totalEmployees,   color: "#2563eb", icon: "\uD83D\uDC65", path: "/employees" },
+    { title: "Total Assets",      value: stats.totalAssets,      color: "#5110c1", icon: "\uD83D\uDCBB", path: "/assets" },
+    { title: "Available",         value: stats.availableAssets,  color: "#059669", icon: "\u2705",       path: "/assets" },
+    { title: "Assigned",          value: stats.assignedAssets,   color: "#d97706", icon: "\uD83D\uDCE6", path: "/assignments" },
     { title: "Total Assignments", value: stats.totalAssignments, color: "#0891b2", icon: "\uD83D\uDCCB", path: "/assignments" },
-    { title: "Active", value: stats.activeAssignments, color: "#db2777", icon: "\uD83D\uDD04", path: "/assignments" },
+    { title: "Active",            value: stats.activeAssignments,color: "#db2777", icon: "\uD83D\uDD04", path: "/assignments" },
   ];
 
   return (
     <div style={s.page}>
       <Navbar />
       <div style={s.content}>
+
         {/* Welcome Banner */}
         <div style={s.banner}>
-          {/* Decorative circles */}
           <div style={s.circle1} />
           <div style={s.circle2} />
           <div style={s.bannerInner}>
@@ -73,8 +73,8 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Stat Cards */}
-        {loading ? (
+        {/* Stat Cards — Admin only */}
+        {isAdmin && (loading ? (
           <p style={s.loadingText}>Loading dashboard...</p>
         ) : (
           <div style={s.cardGrid}>
@@ -89,17 +89,20 @@ const DashboardPage = () => {
               </div>
             ))}
           </div>
-        )}
+        ))}
 
-        <div style={s.bottomGrid}>
+        <div style={{ ...s.bottomGrid, gridTemplateColumns: isAdmin ? "1fr 340px" : "1fr" }}>
+
           {/* Recent Assignments */}
           <div style={s.tableCard}>
             <div style={s.tableCardHeader}>
               <h3 style={s.sectionTitle}>Recent Assignments</h3>
-              <span style={s.viewAll} onClick={() => navigate("/assignments")}>View All &rarr;</span>
+              {isAdmin && (
+                <span style={s.viewAll} onClick={() => navigate("/assignments")}>View All &rarr;</span>
+              )}
             </div>
             {recentAssignments.length === 0 ? (
-              <p style={s.emptyText}>No assignments yet. Start by assigning assets to employees.</p>
+              <p style={s.emptyText}>No assignments found.</p>
             ) : (
               <table style={s.table}>
                 <thead>
@@ -129,26 +132,29 @@ const DashboardPage = () => {
             )}
           </div>
 
-          {/* Quick Actions */}
-          <div style={s.quickCard}>
-            <h3 style={s.sectionTitle}>Quick Actions</h3>
-            <div style={s.quickList}>
-              {[
-                { label: "Add Employee", icon: "\uD83D\uDC64", desc: "Register a new employee", path: "/employees" },
-                { label: "Add Asset", icon: "\uD83D\uDCBC", desc: "Register a new asset", path: "/assets" },
-                { label: "Assign Asset", icon: "\uD83D\uDD17", desc: "Assign asset to employee", path: "/assignments" },
-                { label: "View All Assets", icon: "\uD83D\uDCCA", desc: "Browse all assets", path: "/assets" },
-              ].map((action) => (
-                <button key={action.label} style={s.quickBtn} onClick={() => navigate(action.path)}>
-                  <span style={s.quickIcon}>{action.icon}</span>
-                  <div>
-                    <div style={s.quickLabel}>{action.label}</div>
-                    <div style={s.quickDesc}>{action.desc}</div>
-                  </div>
-                </button>
-              ))}
+          {/* Quick Actions — Admin only */}
+          {isAdmin && (
+            <div style={s.quickCard}>
+              <h3 style={s.sectionTitle}>Quick Actions</h3>
+              <div style={s.quickList}>
+                {[
+                  { label: "Add Employee",    icon: "\uD83D\uDC64", desc: "Register a new employee", path: "/employees" },
+                  { label: "Add Asset",       icon: "\uD83D\uDCBC", desc: "Register a new asset",    path: "/assets" },
+                  { label: "Assign Asset",    icon: "\uD83D\uDD17", desc: "Assign asset to employee", path: "/assignments" },
+                  { label: "View All Assets", icon: "\uD83D\uDCCA", desc: "Browse all assets",        path: "/assets" },
+                ].map((action) => (
+                  <button key={action.label} style={s.quickBtn} onClick={() => navigate(action.path)}>
+                    <span style={s.quickIcon}>{action.icon}</span>
+                    <div>
+                      <div style={s.quickLabel}>{action.label}</div>
+                      <div style={s.quickDesc}>{action.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
         </div>
       </div>
     </div>
@@ -156,17 +162,12 @@ const DashboardPage = () => {
 };
 
 const s = {
-  page: { minHeight: "100vh", backgroundColor: "#edf2f6", },
+  page: { minHeight: "100vh", backgroundColor: "#edf2f6" },
   content: { maxWidth: "1280px", margin: "0 auto", padding: "28px 32px" },
-
-  // Banner
   banner: {
-    position: "relative",
-    overflow: "hidden",
-    borderRadius: "16px",
+    position: "relative", overflow: "hidden", borderRadius: "16px",
     background: "linear-gradient(145deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%)",
-    padding: "32px 36px",
-    marginBottom: "28px",
+    padding: "32px 36px", marginBottom: "28px",
   },
   circle1: {
     position: "absolute", width: "300px", height: "300px", borderRadius: "50%",
@@ -180,43 +181,29 @@ const s = {
     position: "relative", zIndex: 1,
     display: "flex", justifyContent: "space-between", alignItems: "center",
   },
-  bannerTitle: {
-    fontSize: "26px", fontWeight: "800", color: "#fff", margin: 0, letterSpacing: "-0.5px",
-  },
+  bannerTitle: { fontSize: "26px", fontWeight: "800", color: "#fff", margin: 0, letterSpacing: "-0.5px" },
   bannerSub: { fontSize: "14px", color: "rgba(255,255,255,0.7)", marginTop: "6px" },
   rolePill: {
     display: "inline-block", padding: "2px 10px", borderRadius: "12px",
     background: "rgba(255,255,255,0.15)", color: "#fcf6f6", fontSize: "12px",
-    fontWeight: "700", border: "1px solid rgba(255,255,255,0.2)",
-    backdropFilter: "blur(4px)",
+    fontWeight: "700", border: "1px solid rgba(255,255,255,0.2)", backdropFilter: "blur(4px)",
   },
-  bannerDate: { fontSize: "13px", color: "rgb(250, 250, 250)", fontWeight: "500" },
-
-  // Cards
-  cardGrid: {
-    display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "28px",
-  },
+  bannerDate: { fontSize: "13px", color: "rgb(250,250,250)", fontWeight: "500" },
+  cardGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "28px" },
   card: {
     borderRadius: "14px", padding: "22px", cursor: "pointer",
     background: "#cbc1c14c", border: "1.5px solid #93b9ec",
-    boxShadow: "0 1px 3px rgba(153, 179, 234, 0.42)",
-    transition: "transform 0.15s, box-shadow 0.15s",
+    boxShadow: "0 1px 3px rgba(153,179,234,0.42)", transition: "transform 0.15s, box-shadow 0.15s",
   },
-  cardHeader: {
-    display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px",
-  },
+  cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" },
   cardIcon: { fontSize: "26px" },
   cardArrow: { fontSize: "18px", color: "#030c17" },
   cardValue: { fontSize: "36px", fontWeight: "800", lineHeight: 1, marginBottom: "6px" },
   cardTitle: { fontSize: "13px", color: "#161250", fontWeight: "500" },
-
-  // Bottom grid
-  bottomGrid: { display: "grid", gridTemplateColumns: "1fr 340px", gap: "20px" },
-
-  // Table card
+  bottomGrid: { display: "grid", gap: "20px" },
   tableCard: {
-    background: "#e0ebf0", border: "1.5px solid #e2e8f0", borderRadius: "14px", overflow: "hidden",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+    background: "#e0ebf0", border: "1.5px solid #e2e8f0", borderRadius: "14px",
+    overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
   },
   tableCardHeader: {
     display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -228,7 +215,7 @@ const s = {
   th: {
     padding: "12px 24px", textAlign: "left", fontSize: "11px", fontWeight: "700",
     color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em",
-    borderBottom: "1.5px solid #e2e8f0", background: "#f8fafc",
+    borderBottom: "1.5px solid #e2e8f0", background: "#cbe1f7",
   },
   tr: { borderBottom: "1px solid #f1f5f9" },
   td: { padding: "13px 24px", fontSize: "13px", color: "#475569" },
@@ -241,8 +228,6 @@ const s = {
     background: "rgba(100,116,139,0.08)", color: "#64748b",
   },
   emptyText: { padding: "40px 24px", textAlign: "center", color: "#64748b", fontSize: "13px" },
-
-  // Quick actions
   quickCard: {
     background: "#ffffff", border: "1.5px solid #e2e8f0", borderRadius: "14px",
     padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",

@@ -174,7 +174,7 @@ const AssignmentPage = () => {
               <tbody>
                 {filteredAssignments.map((a) => (
                   <tr key={a.AssignmentID} style={s.tr}>
-                    <td style={{ ...s.td, fontWeight: "600", color: "#0f172a" }}>
+                    <td style={{ ...s.td, fontWeight: "600", color: "#1e3a8a" }}>
                       {a.EmployeeName || `Emp #${a.EmployeeID}`}
                     </td>
                     <td style={s.td}>{a.Department || "-"}</td>
@@ -207,27 +207,27 @@ const AssignmentPage = () => {
 };
 
 const s = {
-  page: { minHeight: "100vh", backgroundColor: "#f8fafc" },
+  page: { minHeight: "100vh", backgroundColor: "#eff6ff" },
   content: { maxWidth: "1400px", margin: "0 auto", padding: "28px 32px" },
   headerRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" },
-  pageTitle: { fontSize: "26px", fontWeight: "800", color: "#0f172a", margin: 0, letterSpacing: "-0.5px" },
-  pageSubtitle: { fontSize: "13px", color: "#64748b", marginTop: "4px" },
+  pageTitle: { fontSize: "26px", fontWeight: "800", color: "#1e3a8a", margin: 0, letterSpacing: "-0.5px" },
+  pageSubtitle: { fontSize: "13px", color: "#3b82f6", marginTop: "4px" },
   btnPrimary: {
-    padding: "12px 24px", background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+    padding: "12px 24px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
     color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
     fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
   },
   formCard: {
-    background: "#ffffff", border: "1.5px solid #e2e8f0", borderRadius: "14px",
-    padding: "28px", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+    background: "#ffffff", border: "1.5px solid #bfdbfe", borderRadius: "14px",
+    padding: "28px", marginBottom: "24px", boxShadow: "0 1px 6px rgba(37,99,235,0.08)",
   },
-  formTitle: { fontSize: "16px", fontWeight: "800", color: "#0f172a", marginBottom: "20px" },
+  formTitle: { fontSize: "16px", fontWeight: "800", color: "#1e3a8a", marginBottom: "20px" },
   formGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "16px" },
   formGroup: { display: "flex", flexDirection: "column", gap: "6px" },
-  label: { fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" },
+  label: { fontSize: "11px", fontWeight: "700", color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.08em" },
   input: {
-    height: "46px", padding: "0 14px", backgroundColor: "#fff", border: "1.5px solid #e2e8f0",
-    borderRadius: "9px", color: "#0f172a", fontSize: "13px", outline: "none", boxSizing: "border-box", width: "100%",
+    height: "46px", padding: "0 14px", backgroundColor: "#fff", border: "1.5px solid #bfdbfe",
+    borderRadius: "9px", color: "#1e3a8a", fontSize: "13px", outline: "none", boxSizing: "border-box", width: "100%",
   },
   errorMsg: {
     color: "#dc2626", fontSize: "13px", padding: "10px 14px",
@@ -241,43 +241,43 @@ const s = {
   // Tab Switcher
   tabTrack: {
     display: "inline-flex", gap: "4px", marginBottom: "16px", padding: "4px",
-    backgroundColor: "#e2e8f0", borderRadius: "10px",
+    backgroundColor: "#dbeafe", borderRadius: "10px",
   },
   tabBtn: {
     padding: "8px 20px", borderRadius: "7px", border: "none",
-    background: "transparent", color: "#64748b", fontSize: "13px",
+    background: "transparent", color: "#3b82f6", fontSize: "13px",
     fontWeight: "600", cursor: "pointer", transition: "all 0.15s",
   },
   tabBtnActive: {
-    background: "#ffffff", color: "#2563eb", fontWeight: "700",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+    background: "#ffffff", color: "#1e3a8a", fontWeight: "700",
+    boxShadow: "0 1px 4px rgba(37,99,235,0.15)",
   },
 
   // Table
   tableCard: {
-    background: "#ffffff", border: "1.5px solid #e2e8f0", borderRadius: "14px",
-    overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+    background: "#ffffff", border: "1.5px solid #bfdbfe", borderRadius: "14px",
+    overflow: "hidden", boxShadow: "0 1px 6px rgba(37,99,235,0.08)",
   },
   table: { width: "100%", borderCollapse: "collapse" },
   th: {
     padding: "13px 18px", textAlign: "left", fontSize: "11px", fontWeight: "700",
-    color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em",
-    borderBottom: "1.5px solid #e2e8f0", background: "#f8fafc",
+    color: "#1e3a8a", textTransform: "uppercase", letterSpacing: "0.08em",
+    borderBottom: "1.5px solid #bfdbfe", background: "#eff6ff",
   },
-  tr: { borderBottom: "1px solid #f1f5f9" },
-  td: { padding: "13px 18px", fontSize: "13px", color: "#475569" },
+  tr: { borderBottom: "1px solid #dbeafe" },
+  td: { padding: "13px 18px", fontSize: "13px", color: "#1e40af" },
   typePill: {
     padding: "3px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
-    background: "rgba(8,145,178,0.06)", color: "#0891b2",
+    background: "#dbeafe", color: "#1e3a8a",
   },
-  remarksText: { fontSize: "12px", color: "#94a3b8", fontStyle: "italic" },
+  remarksText: { fontSize: "12px", color: "#3b82f6", fontStyle: "italic" },
   badgeActive: {
     padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
-    background: "rgba(5,150,105,0.08)", color: "#059669",
+    background: "#dcfce7", color: "#166534",
   },
   badgeReturned: {
     padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
-    background: "rgba(100,116,139,0.08)", color: "#64748b",
+    background: "#dbeafe", color: "#1e3a8a",
   },
   btnReturn: {
     padding: "6px 14px", borderRadius: "7px", border: "1.5px solid #bbf7d0",
@@ -286,9 +286,9 @@ const s = {
   },
   emptyState: { padding: "60px 24px", textAlign: "center" },
   emptyIcon: { fontSize: "40px", marginBottom: "12px" },
-  emptyTitle: { fontSize: "16px", fontWeight: "700", color: "#64748b", marginBottom: "4px" },
-  emptyDesc: { fontSize: "13px", color: "#94a3b8" },
-  loadingText: { padding: "24px", color: "#64748b", textAlign: "center", fontSize: "13px" },
+  emptyTitle: { fontSize: "16px", fontWeight: "700", color: "#1e3a8a", marginBottom: "4px" },
+  emptyDesc: { fontSize: "13px", color: "#3b82f6" },
+  loadingText: { padding: "24px", color: "#3b82f6", textAlign: "center", fontSize: "13px" },
 };
 
 export default AssignmentPage;
