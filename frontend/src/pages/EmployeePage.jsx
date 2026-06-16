@@ -4,10 +4,13 @@ import { getAllEmployees, createEmployee, deleteEmployee } from "../api/employee
 import { getAssignmentsByEmployee } from "../api/assignmentApi";
 import { downloadEmployeeReport, downloadEmployeesReport } from "../api/reportApi";
 import { useAuth } from "../context/AuthContext";
+import { useTheme, getTheme } from "../context/ThemeContext";
 import { generateEmployeeLogin, getEmployeesWithLogins } from "../api/authApi";
 
 const EmployeePage = () => {
   const { isAdmin } = useAuth();
+  const { isDark } = useTheme();
+  const t = getTheme(isDark);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -101,6 +104,175 @@ const EmployeePage = () => {
   );
 
   const activeCount = employees.filter((e) => e.IsActive).length;
+
+  const s = {
+    page: { minHeight: "100vh", backgroundColor: t.pageBg, transition: "background 0.3s" },
+    content: { maxWidth: "1400px", margin: "0 auto", padding: "28px 32px" },
+    headerRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" },
+    pageTitle: { fontSize: "26px", fontWeight: "800", color: t.textPrimary, margin: 0, letterSpacing: "-0.5px" },
+    pageSubtitle: { fontSize: "13px", color: t.textSecondary, marginTop: "4px" },
+    headerActions: { display: "flex", gap: "12px", alignItems: "center" },
+    searchWrap: { position: "relative" },
+    searchInput: {
+      width: "260px", height: "46px", padding: "0 16px", borderRadius: "9px",
+      border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.inputColor,
+      fontSize: "13px", outline: "none", boxSizing: "border-box",
+    },
+    btnPrimary: {
+      padding: "12px 24px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+      color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
+      fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+    },
+    formCard: {
+      background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",
+      padding: "28px", marginBottom: "24px", boxShadow: `0 1px 6px ${t.shadow}`,
+    },
+    formTitle: { fontSize: "16px", fontWeight: "800", color: t.textPrimary, marginBottom: "20px" },
+    formGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "16px" },
+    formGroup: { display: "flex", flexDirection: "column", gap: "6px" },
+    label: { fontSize: "11px", fontWeight: "700", color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.08em" },
+    input: {
+      height: "46px", padding: "0 14px", backgroundColor: t.inputBg, border: `1.5px solid ${t.border}`,
+      borderRadius: "9px", color: t.inputColor, fontSize: "13px", outline: "none", boxSizing: "border-box",
+    },
+    errorMsg: {
+      color: "#dc2626", fontSize: "13px", padding: "10px 14px",
+      background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "9px", marginBottom: "12px",
+    },
+    successMsg: {
+      color: "#059669", fontSize: "13px", padding: "10px 14px",
+      background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "9px", marginBottom: "12px",
+    },
+    mainLayout: { display: "flex", gap: "24px", alignItems: "flex-start" },
+    tableCard: {
+      flex: 1, background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",
+      overflow: "hidden", boxShadow: `0 1px 6px ${t.shadow}`,
+    },
+    table: { width: "100%", borderCollapse: "collapse" },
+    th: {
+      padding: "13px 18px", textAlign: "left", fontSize: "11px", fontWeight: "700",
+      color: t.textPrimary, textTransform: "uppercase", letterSpacing: "0.08em",
+      borderBottom: `1.5px solid ${t.border}`, background: t.thBg,
+    },
+    tr: { borderBottom: `1px solid ${t.rowBorder}` },
+    trSelected: { background: isDark ? "rgba(96,165,250,0.08)" : "rgba(37,99,235,0.06)" },
+    td: { padding: "13px 18px", fontSize: "13px", color: t.textBody },
+    codeBadge: {
+      padding: "3px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
+      background: t.codeBg, color: t.codeColor, fontFamily: "monospace",
+    },
+    badgeActive: {
+      padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
+      background: t.badgeActiveBg, color: t.badgeActiveColor,
+    },
+    badgeInactive: {
+      padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
+      background: t.badgeInactiveBg, color: t.badgeInactiveColor,
+    },
+    actionBtns: { display: "flex", gap: "6px" },
+    btnView: {
+      padding: "6px 12px", borderRadius: "7px", border: `1.5px solid ${t.border}`,
+      background: t.surfaceAlt, color: t.textPrimary, fontSize: "12px", fontWeight: "700", cursor: "pointer",
+    },
+    btnDelete: {
+      padding: "6px 12px", borderRadius: "7px", border: "1.5px solid #fecaca",
+      background: "#fef2f2", color: "#dc2626", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+    },
+    btnReport: {
+      padding: "6px 12px", borderRadius: "7px", border: `1.5px solid ${t.border}`,
+      background: t.codeBg, color: t.codeColor, fontSize: "12px", fontWeight: "700", cursor: "pointer",
+    },
+    btnGenLogin: {
+      padding: "6px 14px", borderRadius: "7px", border: "none",
+      background: "#16a34a", color: "#fff", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+    },
+    btnLoginDone: {
+      padding: "6px 14px", borderRadius: "7px",
+      background: "#fef2f2", color: "#991b1b", border: "1.5px solid #fecaca",
+      fontSize: "12px", fontWeight: "700", cursor: "pointer",
+    },
+    emptyState: { padding: "60px 24px", textAlign: "center" },
+    emptyIcon: { fontSize: "40px", marginBottom: "12px" },
+    emptyTitle: { fontSize: "16px", fontWeight: "700", color: t.textPrimary, marginBottom: "4px" },
+    emptyDesc: { fontSize: "13px", color: t.textSecondary },
+    emptySmall: { padding: "24px", color: t.textSecondary, fontSize: "13px", textAlign: "center" },
+    loadingText: { padding: "24px", color: t.textSecondary, textAlign: "center", fontSize: "13px" },
+    sidePanel: {
+      width: "340px", background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",
+      padding: "20px", flexShrink: 0, boxShadow: `0 1px 6px ${t.shadow}`,
+    },
+    sidePanelHeader: {
+      display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+      marginBottom: "18px", paddingBottom: "14px", borderBottom: `1.5px solid ${t.border}`,
+    },
+    spTopBar: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" },
+    spAvatar: {
+      width: "52px", height: "52px", borderRadius: "14px",
+      background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+      color: "#fff", fontSize: "22px", fontWeight: "800",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
+    },
+    spNameBlock: { marginBottom: "16px" },
+    sidePanelTitle: { fontSize: "17px", fontWeight: "800", color: t.textPrimary, margin: "0 0 4px" },
+    sidePanelSub: { fontSize: "12px", color: t.textSecondary, margin: "0 0 8px" },
+    spDeptBadge: {
+      display: "inline-block", padding: "3px 10px", borderRadius: "20px",
+      background: t.codeBg, color: t.codeColor, fontSize: "11px", fontWeight: "700",
+    },
+    spDivider: { height: "1.5px", background: t.border, marginBottom: "16px" },
+    spEmpty: {
+      textAlign: "center", padding: "28px 16px", background: t.surfaceAlt,
+      borderRadius: "12px", border: `1.5px dashed ${t.border}`,
+    },
+    spAssetList: { display: "flex", flexDirection: "column", gap: "10px" },
+    spListLabel: { fontSize: "11px", fontWeight: "700", color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" },
+    assetIconWrap: {
+      width: "36px", height: "36px", borderRadius: "10px", background: t.codeBg,
+      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+    },
+    btnClose: {
+      background: t.surfaceAlt, border: `1.5px solid ${t.border}`, borderRadius: "7px",
+      color: t.textPrimary, cursor: "pointer", fontSize: "13px",
+      width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center",
+    },
+    statRow: { display: "flex", gap: "8px", marginBottom: "16px" },
+    statBox: {
+      flex: 1, background: t.surfaceAlt, borderRadius: "10px", padding: "12px", textAlign: "center",
+      border: `1.5px solid ${t.border}`,
+    },
+    statNum: { fontSize: "20px", fontWeight: "800" },
+    statLabel: { fontSize: "10px", color: t.textSecondary, marginTop: "2px", fontWeight: "700", letterSpacing: "0.06em" },
+    assetItem: {
+      display: "flex", alignItems: "center", gap: "12px",
+      padding: "12px 14px", background: t.surface, borderRadius: "12px",
+      border: `1.5px solid ${t.border}`, boxShadow: `0 1px 4px ${t.shadow}`,
+    },
+    assetName: { fontSize: "13px", fontWeight: "600", color: t.textPrimary, marginBottom: "2px" },
+    assetMeta: { fontSize: "11px", color: t.textSecondary },
+    miniBadgeHolding: {
+      padding: "3px 8px", borderRadius: "5px", fontSize: "10px", fontWeight: "700",
+      background: t.badgeActiveBg, color: t.badgeActiveColor,
+    },
+    miniBadgeReturned: {
+      padding: "3px 8px", borderRadius: "5px", fontSize: "10px", fontWeight: "700",
+      background: t.codeBg, color: t.codeColor,
+    },
+    toastOverlay: {
+      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 9999, pointerEvents: "none",
+    },
+    toastBox: {
+      display: "flex", alignItems: "center", gap: "12px",
+      padding: "18px 28px", borderRadius: "14px", fontSize: "15px", fontWeight: "600",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.18)", pointerEvents: "auto",
+    },
+    toastSuccess: { background: "#f0fdf4", border: "1.5px solid #86efac", color: "#166534" },
+    toastError:   { background: "#fef2f2", border: "1.5px solid #fca5a5", color: "#991b1b" },
+    toastIcon: { fontSize: "20px" },
+    toastMsg:  { fontSize: "14px" },
+  };
 
   return (
     <div style={s.page}>
@@ -197,7 +369,7 @@ const EmployeePage = () => {
                         ...s.tr, ...(selectedEmployee?.EmployeeID === emp.EmployeeID ? s.trSelected : {}),
                       }}>
                         <td style={s.td}><span style={s.codeBadge}>{emp.EmployeeCode || "-"}</span></td>
-                        <td style={{ ...s.td, fontWeight: "600", color: "#0f172a" }}>{emp.EmployeeName}</td>
+                        <td style={{ ...s.td, fontWeight: "600", color: t.textPrimary }}>{emp.EmployeeName}</td>
                         <td style={s.td}>{emp.Department || "-"}</td>
                         <td style={s.td}>{emp.Designation || "-"}</td>
                         <td style={s.td}>{emp.Email || "-"}</td>
@@ -316,182 +488,6 @@ const EmployeePage = () => {
       </div>
     </div>
   );
-};
-
-const s = {
-  page: { minHeight: "100vh", backgroundColor: "#eff6ff" },
-  content: { maxWidth: "1400px", margin: "0 auto", padding: "28px 32px" },
-  headerRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" },
-  pageTitle: { fontSize: "26px", fontWeight: "800", color: "#1e3a8a", margin: 0, letterSpacing: "-0.5px" },
-  pageSubtitle: { fontSize: "13px", color: "#3b82f6", marginTop: "4px" },
-  headerActions: { display: "flex", gap: "12px", alignItems: "center" },
-  searchWrap: { position: "relative" },
-  searchInput: {
-    width: "260px", height: "46px", padding: "0 16px", borderRadius: "9px",
-    border: "1.5px solid #bfdbfe", background: "#fff", color: "#1e3a8a",
-    fontSize: "13px", outline: "none", boxSizing: "border-box",
-  },
-  btnPrimary: {
-    padding: "12px 24px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
-    color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
-    fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
-  },
-  formCard: {
-    background: "#ffffff", border: "1.5px solid #bfdbfe", borderRadius: "14px",
-    padding: "28px", marginBottom: "24px", boxShadow: "0 1px 6px rgba(37,99,235,0.08)",
-  },
-  formTitle: { fontSize: "16px", fontWeight: "800", color: "#1e3a8a", marginBottom: "20px" },
-  formGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "16px" },
-  formGroup: { display: "flex", flexDirection: "column", gap: "6px" },
-  label: { fontSize: "11px", fontWeight: "700", color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.08em" },
-  input: {
-    height: "46px", padding: "0 14px", backgroundColor: "#fff", border: "1.5px solid #bfdbfe",
-    borderRadius: "9px", color: "#1e3a8a", fontSize: "13px", outline: "none", boxSizing: "border-box",
-  },
-  errorMsg: {
-    color: "#dc2626", fontSize: "13px", padding: "10px 14px",
-    background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "9px", marginBottom: "12px",
-  },
-  successMsg: {
-    color: "#059669", fontSize: "13px", padding: "10px 14px",
-    background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "9px", marginBottom: "12px",
-  },
-  mainLayout: { display: "flex", gap: "24px", alignItems: "flex-start" },
-  tableCard: {
-    flex: 1, background: "#ffffff", border: "1.5px solid #bfdbfe", borderRadius: "14px",
-    overflow: "hidden", boxShadow: "0 1px 6px rgba(37,99,235,0.08)",
-  },
-  table: { width: "100%", borderCollapse: "collapse" },
-  th: {
-    padding: "13px 18px", textAlign: "left", fontSize: "11px", fontWeight: "700",
-    color: "#1e3a8a", textTransform: "uppercase", letterSpacing: "0.08em",
-    borderBottom: "1.5px solid #bfdbfe", background: "#eff6ff",
-  },
-  tr: { borderBottom: "1px solid #dbeafe" },
-  trSelected: { background: "rgba(37,99,235,0.06)" },
-  td: { padding: "13px 18px", fontSize: "13px", color: "#1e40af" },
-  codeBadge: {
-    padding: "3px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
-    background: "#dbeafe", color: "#1e3a8a", fontFamily: "monospace",
-  },
-  badgeActive: {
-    padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
-    background: "#dcfce7", color: "#166534",
-  },
-  badgeInactive: {
-    padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
-    background: "#fef2f2", color: "#991b1b",
-  },
-  actionBtns: { display: "flex", gap: "6px" },
-  btnView: {
-    padding: "6px 12px", borderRadius: "7px", border: "1.5px solid #bfdbfe",
-    background: "#eff6ff", color: "#1e3a8a", fontSize: "12px", fontWeight: "700", cursor: "pointer",
-  },
-  btnDelete: {
-    padding: "6px 12px", borderRadius: "7px", border: "1.5px solid #fecaca",
-    background: "#fef2f2", color: "#dc2626", fontSize: "12px", fontWeight: "700", cursor: "pointer",
-  },
-  btnReport: {
-    padding: "6px 12px", borderRadius: "7px", border: "1.5px solid #bfdbfe",
-    background: "#dbeafe", color: "#1e3a8a", fontSize: "12px", fontWeight: "700", cursor: "pointer",
-  },
-  btnGenLogin: {
-    padding: "6px 14px", borderRadius: "7px", border: "none",
-    background: "#16a34a", color: "#fff", fontSize: "12px", fontWeight: "700", cursor: "pointer",
-  },
-  btnLoginDone: {
-    padding: "6px 14px", borderRadius: "7px", border: "none",
-    background: "#fef2f2", color: "#991b1b", border: "1.5px solid #fecaca",
-    fontSize: "12px", fontWeight: "700", cursor: "pointer",
-  },
-  emptyState: { padding: "60px 24px", textAlign: "center" },
-  emptyIcon: { fontSize: "40px", marginBottom: "12px" },
-  emptyTitle: { fontSize: "16px", fontWeight: "700", color: "#1e3a8a", marginBottom: "4px" },
-  emptyDesc: { fontSize: "13px", color: "#3b82f6" },
-  emptySmall: { padding: "24px", color: "#3b82f6", fontSize: "13px", textAlign: "center" },
-  loadingText: { padding: "24px", color: "#3b82f6", textAlign: "center", fontSize: "13px" },
-  sidePanel: {
-    width: "340px", background: "#ffffff", border: "1.5px solid #bfdbfe", borderRadius: "14px",
-    padding: "20px", flexShrink: 0, boxShadow: "0 1px 6px rgba(37,99,235,0.08)",
-  },
-  sidePanelHeader: {
-    display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-    marginBottom: "18px", paddingBottom: "14px", borderBottom: "1.5px solid #bfdbfe",
-  },
-  spTopBar: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" },
-  spAvatar: {
-    width: "52px", height: "52px", borderRadius: "14px",
-    background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
-    color: "#fff", fontSize: "22px", fontWeight: "800",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
-  },
-  spNameBlock: { marginBottom: "16px" },
-  sidePanelTitle: { fontSize: "17px", fontWeight: "800", color: "#1e3a8a", margin: "0 0 4px" },
-  sidePanelSub: { fontSize: "12px", color: "#3b82f6", margin: "0 0 8px" },
-  spDeptBadge: {
-    display: "inline-block", padding: "3px 10px", borderRadius: "20px",
-    background: "#dbeafe", color: "#1e3a8a", fontSize: "11px", fontWeight: "700",
-  },
-  spDivider: { height: "1.5px", background: "#bfdbfe", marginBottom: "16px" },
-  spEmpty: {
-    textAlign: "center", padding: "28px 16px", background: "#eff6ff",
-    borderRadius: "12px", border: "1.5px dashed #bfdbfe",
-  },
-  spAssetList: { display: "flex", flexDirection: "column", gap: "10px" },
-  spListLabel: { fontSize: "11px", fontWeight: "700", color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" },
-  assetIconWrap: {
-    width: "36px", height: "36px", borderRadius: "10px", background: "#dbeafe",
-    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-  },
-  btnClose: {
-    background: "#eff6ff", border: "1.5px solid #bfdbfe", borderRadius: "7px",
-    color: "#1e3a8a", cursor: "pointer", fontSize: "13px",
-    width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center",
-  },
-  statRow: { display: "flex", gap: "8px", marginBottom: "16px" },
-  statBox: {
-    flex: 1, background: "#eff6ff", borderRadius: "10px", padding: "12px", textAlign: "center",
-    border: "1.5px solid #bfdbfe",
-  },
-  statNum: { fontSize: "20px", fontWeight: "800" },
-  statLabel: { fontSize: "10px", color: "#3b82f6", marginTop: "2px", fontWeight: "700", letterSpacing: "0.06em" },
-  assetItem: {
-    display: "flex", alignItems: "center", gap: "12px",
-    padding: "12px 14px", background: "#fff", borderRadius: "12px",
-    border: "1.5px solid #bfdbfe", boxShadow: "0 1px 4px rgba(37,99,235,0.06)",
-  },
-  assetName: { fontSize: "13px", fontWeight: "600", color: "#1e3a8a", marginBottom: "2px" },
-  assetMeta: { fontSize: "11px", color: "#3b82f6" },
-  miniBadgeHolding: {
-    padding: "3px 8px", borderRadius: "5px", fontSize: "10px", fontWeight: "700",
-    background: "#dcfce7", color: "#166534",
-  },
-  miniBadgeReturned: {
-    padding: "3px 8px", borderRadius: "5px", fontSize: "10px", fontWeight: "700",
-    background: "#dbeafe", color: "#1e3a8a",
-  },
-
-  // Toast styles
-  toastOverlay: {
-    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-    display: "flex", alignItems: "center", justifyContent: "center",
-    zIndex: 9999, pointerEvents: "none",
-  },
-  toastBox: {
-    display: "flex", alignItems: "center", gap: "12px",
-    padding: "18px 28px", borderRadius: "14px", fontSize: "15px", fontWeight: "600",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.18)", pointerEvents: "auto",
-    animation: "fadeIn 0.2s ease",
-  },
-  toastSuccess: {
-    background: "#f0fdf4", border: "1.5px solid #86efac", color: "#166534",
-  },
-  toastError: {
-    background: "#fef2f2", border: "1.5px solid #fca5a5", color: "#991b1b",
-  },
-  toastIcon: { fontSize: "20px" },
-  toastMsg:  { fontSize: "14px" },
 };
 
 export default EmployeePage;

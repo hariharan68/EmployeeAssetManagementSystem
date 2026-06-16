@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import {
   getAllGroups,
@@ -10,9 +10,12 @@ import {
 import { createAsset, deleteAsset } from "../api/assetApi";
 import { downloadAssetReport, downloadAssetsReport } from "../api/reportApi";
 import { useAuth } from "../context/AuthContext";
+import { useTheme, getTheme } from "../context/ThemeContext";
 
 const AssetPage = () => {
   const { isAdmin } = useAuth();
+  const { isDark } = useTheme();
+  const t = getTheme(isDark);
 
   const [view,          setView]          = useState("groups");
   const [groups,        setGroups]        = useState([]);
@@ -177,9 +180,131 @@ const AssetPage = () => {
     groupIcons[name] || groupIcons.default;
 
   const getStatusColor = (status) => {
-    if (status === "Available") return { bg: "#f0fdf4", color: "#16a34a", border: "#bbf7d0" };
-    if (status === "Assigned")  return { bg: "#eff6ff", color: "#2563eb", border: "#bfdbfe" };
-    return                             { bg: "#f8fafc", color: "#64748b", border: "#e2e8f0" };
+    if (status === "Available") return { bg: isDark ? "#14532d" : "#f0fdf4", color: isDark ? "#86efac" : "#16a34a", border: isDark ? "#166534" : "#bbf7d0" };
+    if (status === "Assigned")  return { bg: isDark ? "#1e3a5f" : "#eff6ff", color: isDark ? "#93c5fd" : "#2563eb", border: isDark ? "#1d4ed8" : "#bfdbfe" };
+    return                             { bg: t.surfaceAlt, color: t.textSecondary, border: t.border };
+  };
+
+  const s = {
+    page: { minHeight: "100vh", backgroundColor: t.pageBg, color: t.textPrimary, transition: "background 0.3s" },
+    content: { padding: "32px 40px", maxWidth: "1400px", margin: "0 auto" },
+    pageHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "28px" },
+    pageTitle: { fontSize: "26px", fontWeight: "800", color: t.textPrimary, margin: 0, letterSpacing: "-0.5px" },
+    pageSubtitle: { fontSize: "13px", color: t.textSecondary, marginTop: "4px", margin: "4px 0 0" },
+    btnPrimary: {
+      padding: "10px 20px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+      color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
+      fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+    },
+    statsRow: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "28px" },
+    statCard: {
+      backgroundColor: t.surface, border: `1.5px solid ${t.border}`,
+      borderRadius: "14px", padding: "20px 24px", boxShadow: `0 1px 6px ${t.shadow}`,
+    },
+    statNumber: { fontSize: "28px", fontWeight: "700", color: t.textPrimary, lineHeight: 1 },
+    statLabel:  { fontSize: "13px", color: t.textSecondary, marginTop: "6px" },
+    formCard: {
+      backgroundColor: t.surface, border: `1.5px solid ${t.border}`,
+      borderRadius: "14px", padding: "24px", marginBottom: "24px", boxShadow: `0 1px 6px ${t.shadow}`,
+    },
+    formTitle:   { fontSize: "15px", fontWeight: "700", color: t.textPrimary, marginBottom: "4px", marginTop: 0 },
+    formTopBar:  { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" },
+    formSubtitle:{ fontSize: "13px", color: t.textSecondary, margin: "4px 0 0" },
+    groupSelectedBadge: {
+      display: "flex", alignItems: "center", gap: "12px", padding: "10px 16px",
+      backgroundColor: t.surfaceAlt, border: `1.5px solid ${t.border}`, borderRadius: "10px",
+    },
+    groupSelectedIcon: { fontSize: "20px" },
+    groupSelectedName: { fontSize: "14px", fontWeight: "600", color: t.textPrimary },
+    groupSelectedCode: { fontSize: "11px", color: t.textSecondary, marginTop: "2px" },
+    formRow:   { display: "flex", gap: "16px", alignItems: "flex-end", flexWrap: "wrap" },
+    assetFormGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "20px" },
+    formField: { display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "160px" },
+    label: { fontSize: "11px", fontWeight: "700", color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.08em" },
+    input: {
+      height: "40px", padding: "0 12px", backgroundColor: t.inputBg, border: `1.5px solid ${t.border}`,
+      borderRadius: "9px", color: t.inputColor, fontSize: "13px", outline: "none", boxSizing: "border-box", width: "100%",
+    },
+    errorMsg:   { color: "#dc2626", fontSize: "13px", padding: "10px 14px", backgroundColor: "#fef2f2", borderRadius: "9px", border: "1px solid #fecaca", marginTop: "12px" },
+    successMsg: { color: "#059669", fontSize: "13px", padding: "10px 14px", backgroundColor: "#f0fdf4", borderRadius: "9px", border: "1px solid #bbf7d0", marginTop: "12px" },
+    groupGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" },
+    groupCard: {
+      backgroundColor: t.surface, border: `1.5px solid ${t.border}`,
+      borderRadius: "14px", padding: "24px", boxShadow: `0 1px 6px ${t.shadow}`, transition: "box-shadow 0.2s",
+    },
+    groupCardTop: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" },
+    groupIconWrap: {
+      width: "48px", height: "48px", backgroundColor: t.codeBg, borderRadius: "12px",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    },
+    groupIconEmoji: { fontSize: "22px" },
+    groupCodePill: {
+      padding: "4px 10px", backgroundColor: t.codeBg, color: t.codeColor,
+      borderRadius: "20px", fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em",
+    },
+    groupCardName:  { fontSize: "18px", fontWeight: "700", color: t.textPrimary, margin: "0 0 16px" },
+    groupCardStats: {
+      display: "flex", alignItems: "center", backgroundColor: t.surfaceAlt,
+      borderRadius: "10px", padding: "12px 0", marginBottom: "14px", border: `1px solid ${t.border}`,
+    },
+    groupStatItem:   { display: "flex", flexDirection: "column", alignItems: "center", flex: 1 },
+    groupStatNumber: { fontSize: "20px", fontWeight: "700", color: t.textPrimary, lineHeight: 1 },
+    groupStatLabel:  { fontSize: "11px", color: t.textSecondary, marginTop: "4px" },
+    groupStatDivider:{ width: "1px", height: "32px", backgroundColor: t.border },
+    progressBar: { height: "4px", backgroundColor: t.codeBg, borderRadius: "2px", overflow: "hidden", marginBottom: "6px" },
+    progressFill:  { height: "100%", backgroundColor: "#2563eb", borderRadius: "2px", transition: "width 0.3s" },
+    progressLabel: { fontSize: "11px", color: t.textSecondary, margin: "0 0 16px" },
+    groupCardActions:  { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" },
+    btnViewAssets: {
+      flex: 1, padding: "9px 0", backgroundColor: t.surfaceAlt, color: t.textPrimary,
+      border: `1.5px solid ${t.border}`, borderRadius: "9px", fontSize: "13px",
+      fontWeight: "700", cursor: "pointer", textAlign: "center",
+    },
+    groupCardSecondary: { display: "flex", gap: "6px" },
+    btnIconEdit: {
+      width: "34px", height: "34px", backgroundColor: isDark ? "#3b2f00" : "#fefce8",
+      border: `1px solid ${isDark ? "#78450a" : "#fde68a"}`, borderRadius: "8px",
+      cursor: "pointer", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center",
+    },
+    btnIconDelete: {
+      width: "34px", height: "34px", backgroundColor: "#fef2f2",
+      border: "1px solid #fecaca", borderRadius: "8px",
+      cursor: "pointer", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center",
+    },
+    loadingBox:    { textAlign: "center", padding: "60px 20px" },
+    loadingText:   { color: t.textSecondary, fontSize: "14px" },
+    loadingSpinner:{ width: "32px", height: "32px", border: `3px solid ${t.border}`, borderTopColor: "#2563eb", borderRadius: "50%", margin: "0 auto 16px", animation: "spin 0.8s linear infinite" },
+    emptyBox: { textAlign: "center", padding: "60px 20px", backgroundColor: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px" },
+    emptyIcon:     { fontSize: "40px", marginBottom: "12px" },
+    emptyTitle:    { fontSize: "16px", fontWeight: "700", color: t.textPrimary, margin: "0 0 8px" },
+    emptySubtitle: { fontSize: "13px", color: t.textSecondary, margin: 0 },
+    breadcrumb:    { display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" },
+    breadcrumbLink:  { fontSize: "13px", color: "#3b82f6", cursor: "pointer", fontWeight: "600" },
+    breadcrumbArrow: { color: t.textSecondary, fontSize: "16px" },
+    breadcrumbActive:{ fontSize: "24px", fontWeight: "800", color: t.textPrimary },
+    summaryCards: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" },
+    summaryCard: {
+      backgroundColor: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",
+      padding: "20px", display: "flex", alignItems: "center", gap: "16px", boxShadow: `0 1px 6px ${t.shadow}`,
+    },
+    summaryCardIcon:  { width: "44px", height: "44px", backgroundColor: t.codeBg, borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", flexShrink: 0 },
+    summaryCardNumber:{ fontSize: "22px", fontWeight: "700", color: t.textPrimary, lineHeight: 1 },
+    summaryCardLabel: { fontSize: "12px", color: t.textSecondary, marginTop: "4px" },
+    tableCard: { backgroundColor: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px", overflow: "hidden", boxShadow: `0 1px 6px ${t.shadow}` },
+    tableHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 20px", borderBottom: `1.5px solid ${t.border}`, backgroundColor: t.thBg },
+    tableTitle: { fontSize: "15px", fontWeight: "700", color: t.textPrimary, margin: 0 },
+    tableCount: { fontSize: "12px", fontWeight: "700", color: t.codeColor, backgroundColor: t.codeBg, padding: "4px 10px", borderRadius: "20px" },
+    table: { width: "100%", borderCollapse: "collapse" },
+    tableHeadRow: { backgroundColor: t.thBg },
+    th: { padding: "12px 16px", textAlign: "left", fontSize: "11px", fontWeight: "700", color: t.textPrimary, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1.5px solid ${t.border}` },
+    tr: { borderBottom: `1px solid ${t.rowBorder}` },
+    td: { padding: "14px 16px", fontSize: "13px", color: t.textBody },
+    tdName: { padding: "14px 16px", fontSize: "13px", color: t.textPrimary, fontWeight: "700" },
+    tdMono: { padding: "14px 16px", fontSize: "12px", color: t.textBody, fontFamily: "monospace" },
+    assetCodeBadge: { padding: "3px 8px", backgroundColor: t.codeBg, color: t.codeColor, borderRadius: "6px", fontSize: "11px", fontWeight: "700", letterSpacing: "0.04em" },
+    statusBadge: { padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" },
+    btnDelete: { padding: "5px 12px", backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" },
+    btnReport: { padding: "5px 12px", backgroundColor: "#f0fdf4", color: "#059669", border: "1px solid #bbf7d0", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" },
   };
 
   return (
@@ -188,7 +313,7 @@ const AssetPage = () => {
 
       <div style={s.content}>
 
-        {/* ══ GROUPS VIEW ══ */}
+        {/*  GROUPS VIEW  */}
         {view === "groups" && (
           <>
             {/* Page Header */}
@@ -419,7 +544,7 @@ const AssetPage = () => {
           </>
         )}
 
-        {/* ══ ASSETS INSIDE GROUP VIEW ══ */}
+        {/*  ASSETS INSIDE GROUP VIEW  */}
         {view === "assets" && selectedGroup && (
           <>
             {/* Breadcrumb Header */}
@@ -664,7 +789,7 @@ const AssetPage = () => {
                 </div>
               ) : groupAssets.length === 0 ? (
                 <div style={s.emptyBox}>
-                  <div style={s.emptyIcon}>📭</div>
+                  <div style={s.emptyIcon}>🔭</div>
                   <h3 style={s.emptyTitle}>No assets yet</h3>
                   <p style={s.emptySubtitle}>
                     Click Add Asset to add the first one to this group
@@ -739,527 +864,6 @@ const AssetPage = () => {
       </div>
     </div>
   );
-};
-
-const s = {
-  page: {
-    minHeight:       "100vh",
-    backgroundColor: "#eff6ff",
-    color:           "#1e3a8a",
-  },
-  content: {
-    padding:   "32px 40px",
-    maxWidth:  "1400px",
-    margin:    "0 auto",
-  },
-
-  pageHeader: {
-    display:        "flex",
-    justifyContent: "space-between",
-    alignItems:     "flex-start",
-    marginBottom:   "28px",
-  },
-  pageTitle: {
-    fontSize:      "26px",
-    fontWeight:    "800",
-    color:         "#1e3a8a",
-    margin:        0,
-    letterSpacing: "-0.5px",
-  },
-  pageSubtitle: {
-    fontSize:  "13px",
-    color:     "#3b82f6",
-    marginTop: "4px",
-    margin:    "4px 0 0",
-  },
-
-  btnPrimary: {
-    padding:      "10px 20px",
-    background:   "linear-gradient(135deg, #2563eb, #1e3a8a)",
-    color:        "#fff",
-    border:       "none",
-    borderRadius: "9px",
-    fontSize:     "13px",
-    fontWeight:   "700",
-    cursor:       "pointer",
-    boxShadow:    "0 4px 14px rgba(37,99,235,0.35)",
-  },
-
-  statsRow: {
-    display:             "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap:                 "16px",
-    marginBottom:        "28px",
-  },
-  statCard: {
-    backgroundColor: "#fff",
-    border:          "1.5px solid #bfdbfe",
-    borderRadius:    "14px",
-    padding:         "20px 24px",
-    boxShadow:       "0 1px 6px rgba(37,99,235,0.08)",
-  },
-  statNumber: {
-    fontSize:   "28px",
-    fontWeight: "700",
-    color:      "#1e3a8a",
-    lineHeight: 1,
-  },
-  statLabel: {
-    fontSize:  "13px",
-    color:     "#3b82f6",
-    marginTop: "6px",
-  },
-
-  formCard: {
-    backgroundColor: "#fff",
-    border:          "1.5px solid #bfdbfe",
-    borderRadius:    "14px",
-    padding:         "24px",
-    marginBottom:    "24px",
-    boxShadow:       "0 1px 6px rgba(37,99,235,0.08)",
-  },
-  formTitle: {
-    fontSize:     "15px",
-    fontWeight:   "700",
-    color:        "#1e3a8a",
-    marginBottom: "4px",
-    marginTop:    0,
-  },
-  formTopBar: {
-    display:        "flex",
-    justifyContent: "space-between",
-    alignItems:     "flex-start",
-    marginBottom:   "20px",
-  },
-  formSubtitle: {
-    fontSize:  "13px",
-    color:     "#3b82f6",
-    margin:    "4px 0 0",
-  },
-  groupSelectedBadge: {
-    display:         "flex",
-    alignItems:      "center",
-    gap:             "12px",
-    padding:         "10px 16px",
-    backgroundColor: "#eff6ff",
-    border:          "1.5px solid #bfdbfe",
-    borderRadius:    "10px",
-  },
-  groupSelectedIcon: {
-    fontSize: "20px",
-  },
-  groupSelectedName: {
-    fontSize:   "14px",
-    fontWeight: "600",
-    color:      "#1e40af",
-  },
-  groupSelectedCode: {
-    fontSize:  "11px",
-    color:     "#3b82f6",
-    marginTop: "2px",
-  },
-  formRow: {
-    display:    "flex",
-    gap:        "16px",
-    alignItems: "flex-end",
-    flexWrap:   "wrap",
-  },
-  assetFormGrid: {
-    display:             "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap:                 "16px",
-    marginBottom:        "20px",
-  },
-  formField: {
-    display:       "flex",
-    flexDirection: "column",
-    gap:           "6px",
-    flex:          1,
-    minWidth:      "160px",
-  },
-  label: {
-    fontSize:      "11px",
-    fontWeight:    "700",
-    color:         "#3b82f6",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-  },
-  input: {
-    height:          "40px",
-    padding:         "0 12px",
-    backgroundColor: "#fff",
-    border:          "1.5px solid #bfdbfe",
-    borderRadius:    "9px",
-    color:           "#1e3a8a",
-    fontSize:        "13px",
-    outline:         "none",
-    boxSizing:       "border-box",
-    width:           "100%",
-  },
-  errorMsg: {
-    color:           "#dc2626",
-    fontSize:        "13px",
-    padding:         "10px 14px",
-    backgroundColor: "#fef2f2",
-    borderRadius:    "9px",
-    border:          "1px solid #fecaca",
-    marginTop:       "12px",
-  },
-  successMsg: {
-    color:           "#059669",
-    fontSize:        "13px",
-    padding:         "10px 14px",
-    backgroundColor: "#f0fdf4",
-    borderRadius:    "9px",
-    border:          "1px solid #bbf7d0",
-    marginTop:       "12px",
-  },
-
-  groupGrid: {
-    display:             "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap:                 "20px",
-  },
-  groupCard: {
-    backgroundColor: "#fff",
-    border:          "1.5px solid #bfdbfe",
-    borderRadius:    "14px",
-    padding:         "24px",
-    boxShadow:       "0 1px 6px rgba(37,99,235,0.08)",
-    transition:      "box-shadow 0.2s",
-  },
-  groupCardTop: {
-    display:        "flex",
-    justifyContent: "space-between",
-    alignItems:     "center",
-    marginBottom:   "16px",
-  },
-  groupIconWrap: {
-    width:           "48px",
-    height:          "48px",
-    backgroundColor: "#dbeafe",
-    borderRadius:    "12px",
-    display:         "flex",
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  groupIconEmoji: {
-    fontSize: "22px",
-  },
-  groupCodePill: {
-    padding:         "4px 10px",
-    backgroundColor: "#dbeafe",
-    color:           "#1e3a8a",
-    borderRadius:    "20px",
-    fontSize:        "11px",
-    fontWeight:      "700",
-    letterSpacing:   "0.05em",
-  },
-  groupCardName: {
-    fontSize:   "18px",
-    fontWeight: "700",
-    color:      "#1e3a8a",
-    margin:     "0 0 16px",
-  },
-  groupCardStats: {
-    display:         "flex",
-    alignItems:      "center",
-    gap:             "0",
-    backgroundColor: "#eff6ff",
-    borderRadius:    "10px",
-    padding:         "12px 0",
-    marginBottom:    "14px",
-    border:          "1px solid #bfdbfe",
-  },
-  groupStatItem: {
-    display:       "flex",
-    flexDirection: "column",
-    alignItems:    "center",
-    flex:          1,
-  },
-  groupStatNumber: {
-    fontSize:   "20px",
-    fontWeight: "700",
-    color:      "#1e3a8a",
-    lineHeight: 1,
-  },
-  groupStatLabel: {
-    fontSize:  "11px",
-    color:     "#3b82f6",
-    marginTop: "4px",
-  },
-  groupStatDivider: {
-    width:           "1px",
-    height:          "32px",
-    backgroundColor: "#bfdbfe",
-  },
-  progressBar: {
-    height:          "4px",
-    backgroundColor: "#dbeafe",
-    borderRadius:    "2px",
-    overflow:        "hidden",
-    marginBottom:    "6px",
-  },
-  progressFill: {
-    height:          "100%",
-    backgroundColor: "#2563eb",
-    borderRadius:    "2px",
-    transition:      "width 0.3s",
-  },
-  progressLabel: {
-    fontSize: "11px",
-    color:    "#3b82f6",
-    margin:   "0 0 16px",
-  },
-  groupCardActions: {
-    display:        "flex",
-    justifyContent: "space-between",
-    alignItems:     "center",
-    gap:            "8px",
-  },
-  btnViewAssets: {
-    flex:            1,
-    padding:         "9px 0",
-    backgroundColor: "#eff6ff",
-    color:           "#1e3a8a",
-    border:          "1.5px solid #bfdbfe",
-    borderRadius:    "9px",
-    fontSize:        "13px",
-    fontWeight:      "700",
-    cursor:          "pointer",
-    textAlign:       "center",
-  },
-  groupCardSecondary: {
-    display: "flex",
-    gap:     "6px",
-  },
-  btnIconEdit: {
-    width:           "34px",
-    height:          "34px",
-    backgroundColor: "#fefce8",
-    border:          "1px solid #fde68a",
-    borderRadius:    "8px",
-    cursor:          "pointer",
-    fontSize:        "14px",
-    display:         "flex",
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  btnIconDelete: {
-    width:           "34px",
-    height:          "34px",
-    backgroundColor: "#fef2f2",
-    border:          "1px solid #fecaca",
-    borderRadius:    "8px",
-    cursor:          "pointer",
-    fontSize:        "14px",
-    display:         "flex",
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-
-  loadingBox: {
-    textAlign: "center",
-    padding:   "60px 20px",
-  },
-  loadingText: {
-    color:    "#3b82f6",
-    fontSize: "14px",
-  },
-  loadingSpinner: {
-    width:           "32px",
-    height:          "32px",
-    border:          "3px solid #dbeafe",
-    borderTopColor:  "#2563eb",
-    borderRadius:    "50%",
-    margin:          "0 auto 16px",
-    animation:       "spin 0.8s linear infinite",
-  },
-  emptyBox: {
-    textAlign:       "center",
-    padding:         "60px 20px",
-    backgroundColor: "#fff",
-    border:          "1.5px solid #bfdbfe",
-    borderRadius:    "14px",
-  },
-  emptyIcon: {
-    fontSize:     "40px",
-    marginBottom: "12px",
-  },
-  emptyTitle: {
-    fontSize:   "16px",
-    fontWeight: "700",
-    color:      "#1e3a8a",
-    margin:     "0 0 8px",
-  },
-  emptySubtitle: {
-    fontSize: "13px",
-    color:    "#3b82f6",
-    margin:   0,
-  },
-
-  breadcrumb: {
-    display:      "flex",
-    alignItems:   "center",
-    gap:          "4px",
-    marginBottom: "4px",
-  },
-  breadcrumbLink: {
-    fontSize:   "13px",
-    color:      "#2563eb",
-    cursor:     "pointer",
-    fontWeight: "600",
-  },
-  breadcrumbArrow: {
-    color:    "#3b82f6",
-    fontSize: "16px",
-  },
-  breadcrumbActive: {
-    fontSize:   "24px",
-    fontWeight: "800",
-    color:      "#1e3a8a",
-  },
-
-  summaryCards: {
-    display:             "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap:                 "16px",
-    marginBottom:        "24px",
-  },
-  summaryCard: {
-    backgroundColor: "#fff",
-    border:          "1.5px solid #bfdbfe",
-    borderRadius:    "14px",
-    padding:         "20px",
-    display:         "flex",
-    alignItems:      "center",
-    gap:             "16px",
-    boxShadow:       "0 1px 6px rgba(37,99,235,0.08)",
-  },
-  summaryCardIcon: {
-    width:           "44px",
-    height:          "44px",
-    backgroundColor: "#dbeafe",
-    borderRadius:    "10px",
-    display:         "flex",
-    alignItems:      "center",
-    justifyContent:  "center",
-    fontSize:        "20px",
-    flexShrink:      0,
-  },
-  summaryCardNumber: {
-    fontSize:   "22px",
-    fontWeight: "700",
-    color:      "#1e3a8a",
-    lineHeight: 1,
-  },
-  summaryCardLabel: {
-    fontSize:  "12px",
-    color:     "#3b82f6",
-    marginTop: "4px",
-  },
-
-  tableCard: {
-    backgroundColor: "#fff",
-    border:          "1.5px solid #bfdbfe",
-    borderRadius:    "14px",
-    overflow:        "hidden",
-    boxShadow:       "0 1px 6px rgba(37,99,235,0.08)",
-  },
-  tableHeader: {
-    display:        "flex",
-    justifyContent: "space-between",
-    alignItems:     "center",
-    padding:        "18px 20px",
-    borderBottom:   "1.5px solid #bfdbfe",
-    backgroundColor: "#eff6ff",
-  },
-  tableTitle: {
-    fontSize:   "15px",
-    fontWeight: "700",
-    color:      "#1e3a8a",
-    margin:     0,
-  },
-  tableCount: {
-    fontSize:        "12px",
-    fontWeight:      "700",
-    color:           "#1e3a8a",
-    backgroundColor: "#dbeafe",
-    padding:         "4px 10px",
-    borderRadius:    "20px",
-  },
-  table: {
-    width:          "100%",
-    borderCollapse: "collapse",
-  },
-  tableHeadRow: {
-    backgroundColor: "#eff6ff",
-  },
-  th: {
-    padding:       "12px 16px",
-    textAlign:     "left",
-    fontSize:      "11px",
-    fontWeight:    "700",
-    color:         "#1e3a8a",
-    textTransform: "uppercase",
-    letterSpacing: "0.06em",
-    borderBottom:  "1.5px solid #bfdbfe",
-  },
-  tr: {
-    borderBottom: "1px solid #dbeafe",
-  },
-  td: {
-    padding:  "14px 16px",
-    fontSize: "13px",
-    color:    "#1e40af",
-  },
-  tdName: {
-    padding:    "14px 16px",
-    fontSize:   "13px",
-    color:      "#1e3a8a",
-    fontWeight: "700",
-  },
-  tdMono: {
-    padding:    "14px 16px",
-    fontSize:   "12px",
-    color:      "#1e40af",
-    fontFamily: "monospace",
-  },
-  assetCodeBadge: {
-    padding:         "3px 8px",
-    backgroundColor: "#dbeafe",
-    color:           "#1e3a8a",
-    borderRadius:    "6px",
-    fontSize:        "11px",
-    fontWeight:      "700",
-    letterSpacing:   "0.04em",
-  },
-  statusBadge: {
-    padding:      "4px 10px",
-    borderRadius: "20px",
-    fontSize:     "12px",
-    fontWeight:   "600",
-  },
-  btnDelete: {
-    padding:         "5px 12px",
-    backgroundColor: "#fef2f2",
-    color:           "#dc2626",
-    border:          "1px solid #fecaca",
-    borderRadius:    "6px",
-    fontSize:        "12px",
-    fontWeight:      "600",
-    cursor:          "pointer",
-  },
-  btnReport: {
-    padding:         "5px 12px",
-    backgroundColor: "#f0fdf4",
-    color:           "#059669",
-    border:          "1px solid #bbf7d0",
-    borderRadius:    "6px",
-    fontSize:        "12px",
-    fontWeight:      "600",
-    cursor:          "pointer",
-  },
 };
 
 export default AssetPage;

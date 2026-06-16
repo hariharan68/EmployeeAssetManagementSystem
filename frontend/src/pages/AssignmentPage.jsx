@@ -4,9 +4,12 @@ import { getAllAssignments, assignAsset, returnAsset } from "../api/assignmentAp
 import { getAllEmployees } from "../api/employeeApi";
 import { getAllAssets } from "../api/assetApi";
 import { useAuth } from "../context/AuthContext";
+import { useTheme, getTheme } from "../context/ThemeContext";
 
 const AssignmentPage = () => {
   const { isAdmin } = useAuth();
+  const { isDark } = useTheme();
+  const t = getTheme(isDark);
   const [assignments, setAssignments] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [assets, setAssets] = useState([]);
@@ -71,6 +74,68 @@ const AssignmentPage = () => {
     { key: "active", label: `Active (${activeCount})` },
     { key: "returned", label: `Returned (${returnedCount})` },
   ];
+
+  const s = {
+    page: { minHeight: "100vh", backgroundColor: t.pageBg, transition: "background 0.3s" },
+    content: { maxWidth: "1400px", margin: "0 auto", padding: "28px 32px" },
+    headerRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" },
+    pageTitle: { fontSize: "26px", fontWeight: "800", color: t.textPrimary, margin: 0, letterSpacing: "-0.5px" },
+    pageSubtitle: { fontSize: "13px", color: t.textSecondary, marginTop: "4px" },
+    btnPrimary: {
+      padding: "12px 24px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+      color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
+      fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+    },
+    formCard: {
+      background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",
+      padding: "28px", marginBottom: "24px", boxShadow: `0 1px 6px ${t.shadow}`,
+    },
+    formTitle: { fontSize: "16px", fontWeight: "800", color: t.textPrimary, marginBottom: "20px" },
+    formGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "16px" },
+    formGroup: { display: "flex", flexDirection: "column", gap: "6px" },
+    label: { fontSize: "11px", fontWeight: "700", color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.08em" },
+    input: {
+      height: "46px", padding: "0 14px", backgroundColor: t.inputBg, border: `1.5px solid ${t.border}`,
+      borderRadius: "9px", color: t.inputColor, fontSize: "13px", outline: "none", boxSizing: "border-box", width: "100%",
+    },
+    errorMsg: { color: "#dc2626", fontSize: "13px", padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "9px", marginBottom: "12px" },
+    successMsg: { color: "#059669", fontSize: "13px", padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "9px", marginBottom: "12px" },
+    tabTrack: {
+      display: "inline-flex", gap: "4px", marginBottom: "16px", padding: "4px",
+      backgroundColor: isDark ? "#3f3f46" : "#dbeafe", borderRadius: "10px",
+    },
+    tabBtn: {
+      padding: "8px 20px", borderRadius: "7px", border: "none",
+      background: "transparent", color: t.textSecondary, fontSize: "13px",
+      fontWeight: "600", cursor: "pointer", transition: "all 0.15s",
+    },
+    tabBtnActive: {
+      background: t.surface, color: t.textPrimary, fontWeight: "700",
+      boxShadow: isDark ? "0 1px 4px rgba(0,0,0,0.4)" : "0 1px 4px rgba(37,99,235,0.15)",
+    },
+    tableCard: {
+      background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",
+      overflow: "hidden", boxShadow: `0 1px 6px ${t.shadow}`,
+    },
+    table: { width: "100%", borderCollapse: "collapse" },
+    th: {
+      padding: "13px 18px", textAlign: "left", fontSize: "11px", fontWeight: "700",
+      color: t.textPrimary, textTransform: "uppercase", letterSpacing: "0.08em",
+      borderBottom: `1.5px solid ${t.border}`, background: t.thBg,
+    },
+    tr: { borderBottom: `1px solid ${t.rowBorder}` },
+    td: { padding: "13px 18px", fontSize: "13px", color: t.textBody },
+    typePill: { padding: "3px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", background: t.codeBg, color: t.codeColor },
+    remarksText: { fontSize: "12px", color: t.textSecondary, fontStyle: "italic" },
+    badgeActive: { padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700", background: t.badgeActiveBg, color: t.badgeActiveColor },
+    badgeReturned: { padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700", background: t.codeBg, color: t.codeColor },
+    btnReturn: { padding: "6px 14px", borderRadius: "7px", border: "1.5px solid #bbf7d0", background: "#f0fdf4", color: "#059669", fontSize: "12px", fontWeight: "700", cursor: "pointer" },
+    emptyState: { padding: "60px 24px", textAlign: "center" },
+    emptyIcon: { fontSize: "40px", marginBottom: "12px" },
+    emptyTitle: { fontSize: "16px", fontWeight: "700", color: t.textPrimary, marginBottom: "4px" },
+    emptyDesc: { fontSize: "13px", color: t.textSecondary },
+    loadingText: { padding: "24px", color: t.textSecondary, textAlign: "center", fontSize: "13px" },
+  };
 
   return (
     <div style={s.page}>
@@ -204,91 +269,6 @@ const AssignmentPage = () => {
       </div>
     </div>
   );
-};
-
-const s = {
-  page: { minHeight: "100vh", backgroundColor: "#eff6ff" },
-  content: { maxWidth: "1400px", margin: "0 auto", padding: "28px 32px" },
-  headerRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" },
-  pageTitle: { fontSize: "26px", fontWeight: "800", color: "#1e3a8a", margin: 0, letterSpacing: "-0.5px" },
-  pageSubtitle: { fontSize: "13px", color: "#3b82f6", marginTop: "4px" },
-  btnPrimary: {
-    padding: "12px 24px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
-    color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
-    fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
-  },
-  formCard: {
-    background: "#ffffff", border: "1.5px solid #bfdbfe", borderRadius: "14px",
-    padding: "28px", marginBottom: "24px", boxShadow: "0 1px 6px rgba(37,99,235,0.08)",
-  },
-  formTitle: { fontSize: "16px", fontWeight: "800", color: "#1e3a8a", marginBottom: "20px" },
-  formGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "16px" },
-  formGroup: { display: "flex", flexDirection: "column", gap: "6px" },
-  label: { fontSize: "11px", fontWeight: "700", color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.08em" },
-  input: {
-    height: "46px", padding: "0 14px", backgroundColor: "#fff", border: "1.5px solid #bfdbfe",
-    borderRadius: "9px", color: "#1e3a8a", fontSize: "13px", outline: "none", boxSizing: "border-box", width: "100%",
-  },
-  errorMsg: {
-    color: "#dc2626", fontSize: "13px", padding: "10px 14px",
-    background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "9px", marginBottom: "12px",
-  },
-  successMsg: {
-    color: "#059669", fontSize: "13px", padding: "10px 14px",
-    background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "9px", marginBottom: "12px",
-  },
-
-  // Tab Switcher
-  tabTrack: {
-    display: "inline-flex", gap: "4px", marginBottom: "16px", padding: "4px",
-    backgroundColor: "#dbeafe", borderRadius: "10px",
-  },
-  tabBtn: {
-    padding: "8px 20px", borderRadius: "7px", border: "none",
-    background: "transparent", color: "#3b82f6", fontSize: "13px",
-    fontWeight: "600", cursor: "pointer", transition: "all 0.15s",
-  },
-  tabBtnActive: {
-    background: "#ffffff", color: "#1e3a8a", fontWeight: "700",
-    boxShadow: "0 1px 4px rgba(37,99,235,0.15)",
-  },
-
-  // Table
-  tableCard: {
-    background: "#ffffff", border: "1.5px solid #bfdbfe", borderRadius: "14px",
-    overflow: "hidden", boxShadow: "0 1px 6px rgba(37,99,235,0.08)",
-  },
-  table: { width: "100%", borderCollapse: "collapse" },
-  th: {
-    padding: "13px 18px", textAlign: "left", fontSize: "11px", fontWeight: "700",
-    color: "#1e3a8a", textTransform: "uppercase", letterSpacing: "0.08em",
-    borderBottom: "1.5px solid #bfdbfe", background: "#eff6ff",
-  },
-  tr: { borderBottom: "1px solid #dbeafe" },
-  td: { padding: "13px 18px", fontSize: "13px", color: "#1e40af" },
-  typePill: {
-    padding: "3px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
-    background: "#dbeafe", color: "#1e3a8a",
-  },
-  remarksText: { fontSize: "12px", color: "#3b82f6", fontStyle: "italic" },
-  badgeActive: {
-    padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
-    background: "#dcfce7", color: "#166534",
-  },
-  badgeReturned: {
-    padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700",
-    background: "#dbeafe", color: "#1e3a8a",
-  },
-  btnReturn: {
-    padding: "6px 14px", borderRadius: "7px", border: "1.5px solid #bbf7d0",
-    background: "#f0fdf4", color: "#059669", fontSize: "12px",
-    fontWeight: "700", cursor: "pointer",
-  },
-  emptyState: { padding: "60px 24px", textAlign: "center" },
-  emptyIcon: { fontSize: "40px", marginBottom: "12px" },
-  emptyTitle: { fontSize: "16px", fontWeight: "700", color: "#1e3a8a", marginBottom: "4px" },
-  emptyDesc: { fontSize: "13px", color: "#3b82f6" },
-  loadingText: { padding: "24px", color: "#3b82f6", textAlign: "center", fontSize: "13px" },
 };
 
 export default AssignmentPage;
