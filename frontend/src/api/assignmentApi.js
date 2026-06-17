@@ -24,3 +24,31 @@ export const returnAsset = async (assignmentId, data) => {
   );
   return response.data;
 };
+
+export const submitReturnRequest = async (assignmentId, reason) => {
+  const response = await axiosInstance.post(
+    `/api/assignments/return-request/${assignmentId}`,
+    { reason }
+  );
+  return response.data;
+};
+
+export const getReturnRequests = async () => {
+  const response = await axiosInstance.get("/api/assignments/return-requests");
+  return response.data;
+};
+
+export const approveReturnRequest = async (requestId) => {
+  const response = await axiosInstance.put(`/api/assignments/return-request/approve/${requestId}`);
+  return response.data;
+};
+
+export const ignoreReturnRequest = async (requestId) => {
+  const response = await axiosInstance.put(`/api/assignments/return-request/ignore/${requestId}`);
+  return response.data;
+};
+
+export const getMyReturnRequests = async () => {
+  const response = await axiosInstance.get("/api/assignments/my-return-requests");
+  return response.data;
+};

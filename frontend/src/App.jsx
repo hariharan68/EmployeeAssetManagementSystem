@@ -9,6 +9,9 @@ import EmployeePage from "./pages/EmployeePage";
 import AssetPage from "./pages/AssetPage";
 import AssignmentPage from "./pages/AssignmentPage";
 import PendingUsersPage from "./pages/PendingUsersPage";
+import UserPortalPage from "./pages/UserPortalPage";
+import AdminPortalPage from "./pages/AdminPortalPage";
+
 
 const App = () => {
   return (
@@ -54,6 +57,17 @@ const App = () => {
             }
           />
 
+
+          {/* User CRUDE operations */}
+          <Route
+            path="/user-portal"
+            element={
+              <AdminRoute>
+                <UserPortalPage/>
+              </AdminRoute>
+            }
+            />
+
           {/* Admin-only route — approve pending registrations */}
           <Route
             path="/approvals"
@@ -63,6 +77,18 @@ const App = () => {
               </AdminRoute>
             }
           />
+
+         
+
+          {/* Admin modification or add admin */}
+          <Route
+            path="/admin-portal"
+            element={
+              <AdminRoute>
+                <AdminPortalPage/>
+              </AdminRoute>
+            }
+            />
 
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />

@@ -1,5 +1,12 @@
 import axiosInstance from "./axiosInstance";
 
+
+// email validation
+export const checkEmail = async (email) => {
+  const response = await axiosInstance.post("/api/auth/check-email", { email });
+  return response.data;
+};
+
 // Call login endpoint
 export const loginUser = async (email, password) => {
   const response = await axiosInstance.post("/api/auth/login", {

@@ -6,6 +6,12 @@ import { getAllAssignments } from "../api/assignmentApi";
 import { useAuth } from "../context/AuthContext";
 import { useTheme, getTheme } from "../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
+import {
+  FaUsers, FaLaptop, FaCheckCircle, FaBox,
+  FaClipboardList, FaSyncAlt, FaUserPlus,
+  FaBriefcase, FaLink, FaChartBar,
+} from "react-icons/fa";
+
 
 const DashboardPage = () => {
   const { username, role, isAdmin } = useAuth();
@@ -43,14 +49,14 @@ const DashboardPage = () => {
     }
   };
 
-  const cards = [
-    { title: "Total Employees",   value: stats.totalEmployees,   color: "#3b82f6", icon: "👥", path: "/employees" },
-    { title: "Total Assets",      value: stats.totalAssets,      color: "#8b5cf6", icon: "💻", path: "/assets" },
-    { title: "Available",         value: stats.availableAssets,  color: "#10b981", icon: "✅", path: "/assets" },
-    { title: "Assigned",          value: stats.assignedAssets,   color: "#f59e0b", icon: "📦", path: "/assignments" },
-    { title: "Total Assignments", value: stats.totalAssignments, color: "#06b6d4", icon: "📋", path: "/assignments" },
-    { title: "Active",            value: stats.activeAssignments,color: "#ec4899", icon: "🔄", path: "/assignments" },
-  ];
+ const cards = [
+   { title: "Total Employees",   value: stats.totalEmployees,   color: "#3b82f6", icon: <FaUsers size={24} />,         path: "/employees" },
+   { title: "Total Assets",      value: stats.totalAssets,      color: "#8b5cf6", icon: <FaLaptop size={24} />,        path: "/assets" },
+   { title: "Available",         value: stats.availableAssets,  color: "#10b981", icon: <FaCheckCircle size={24} />,   path: "/assets" },
+   { title: "Assigned",          value: stats.assignedAssets,   color: "#f59e0b", icon: <FaBox size={24} />,           path: "/assignments" },
+   { title: "Total Assignments", value: stats.totalAssignments, color: "#06b6d4", icon: <FaClipboardList size={24} />, path: "/assignments" },
+   { title: "Active",            value: stats.activeAssignments,color: "#ec4899", icon: <FaSyncAlt size={24} />,       path: "/assignments" },
+];
 
   const s = {
     page: { minHeight: "100vh", backgroundColor: t.pageBg, transition: "background 0.3s" },
@@ -170,7 +176,7 @@ const DashboardPage = () => {
             {cards.map((card) => (
               <div key={card.title} style={s.card} onClick={() => navigate(card.path)}>
                 <div style={s.cardHeader}>
-                  <span style={s.cardIcon}>{card.icon}</span>
+                  <span style={{ ...s.cardIcon, color: card.color }}>{card.icon}</span>
                   <span style={s.cardArrow}>&rarr;</span>
                 </div>
                 <div style={{ ...s.cardValue, color: card.color }}>{card.value}</div>
@@ -225,13 +231,15 @@ const DashboardPage = () => {
               <h3 style={s.sectionTitle}>Quick Actions</h3>
               <div style={s.quickList}>
                 {[
-                  { label: "Add Employee",    icon: "👤", desc: "Register a new employee",    path: "/employees" },
-                  { label: "Add Asset",       icon: "💼", desc: "Register a new asset",       path: "/assets" },
-                  { label: "Assign Asset",    icon: "🔗", desc: "Assign asset to employee",   path: "/assignments" },
-                  { label: "View All Assets", icon: "📊", desc: "Browse all assets",          path: "/assets" },
+                  { label: "Add Employee",    icon: <FaUserPlus size={18} color="#2563eb" />,  desc: "Register a new employee",  path: "/employees" },
+                  { label: "Add Asset",       icon: <FaBriefcase size={18} color="#8b5cf6" />, desc: "Register a new asset",     path: "/assets" },
+                  { label: "Assign Asset",    icon: <FaLink size={18} color="#06b6d4" />,      desc: "Assign asset to employee", path: "/assignments" },
+                  { label: "View All Assets", icon: <FaChartBar size={18} color="#10b981" />,  desc: "Browse all assets",        path: "/assets" },
                 ].map((action) => (
                   <button key={action.label} style={s.quickBtn} onClick={() => navigate(action.path)}>
-                    <span style={s.quickIcon}>{action.icon}</span>
+                    <span style={{ ...s.quickIcon, display: "flex", alignItems: "center", justifyContent: "center" }}>
+  {action.icon}
+</span>
                     <div>
                       <div style={s.quickLabel}>{action.label}</div>
                       <div style={s.quickDesc}>{action.desc}</div>

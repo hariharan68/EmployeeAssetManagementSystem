@@ -6,6 +6,7 @@ import { getAllAssets } from "../api/assetApi";
 import { useAuth } from "../context/AuthContext";
 import { useTheme, getTheme } from "../context/ThemeContext";
 
+
 const AssignmentPage = () => {
   const { isAdmin } = useAuth();
   const { isDark } = useTheme();
@@ -19,9 +20,16 @@ const AssignmentPage = () => {
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
 
-  const [form, setForm] = useState({
-    EmployeeID: "", AssetID: "", AssignedDate: "", Remarks: "",
+  const today = new Date(). toISOString().split("T") [0];
+
+  const [form,setForm]=useState({
+    EmployeeID: "", AssignedDate: today , Remark:"",
+
   });
+  const [selectedAssets,setSelectedAssets ] = useState([]);
+
+
+
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -36,20 +44,31 @@ const AssignmentPage = () => {
     finally { setLoading(false); }
   };
 
-  const handleAssign = async (e) => {
-    e.preventDefault();
-    setFormError(""); setFormSuccess("");
-    try {
+const handleAssign = async (e) => {
+  e.preventDefault();
+  setFormError(""); setFormSuccess("");
+  if (selectedAssets.length === 0) {
+    setFormError("Please select at least one asset.");
+    return;
+  }
+  try {
+    for (const assetId of selectedAssets) {
       await assignAsset({
-        EmployeeID: parseInt(form.EmployeeID), AssetID: parseInt(form.AssetID),
-        AssignedDate: form.AssignedDate, Remarks: form.Remarks,
+        EmployeeID:   parseInt(form.EmployeeID),
+        AssetID:      assetId,
+        AssignedDate: form.AssignedDate,
+        Remarks:      form.Remarks,
       });
-      setFormSuccess("Asset assigned successfully");
-      setForm({ EmployeeID: "", AssetID: "", AssignedDate: "", Remarks: "" });
-      fetchAll();
-      setTimeout(() => { setShowForm(false); setFormSuccess(""); }, 1500);
-    } catch (err) { setFormError(err.response?.data?.detail || "Assignment failed"); }
-  };
+    }
+    setFormSuccess(`${selectedAssets.length} asset(s) assigned successfully`);
+    setForm({ EmployeeID: "", AssignedDate: today, Remarks: "" });
+    setSelectedAssets([]);
+    fetchAll();
+    setTimeout(() => { setShowForm(false); setFormSuccess(""); }, 1500);
+  } catch (err) {
+    setFormError(err.response?.data?.detail || "Assignment failed");
+  }
+};
 
   const handleReturn = async (assignmentId) => {
     if (!window.confirm("Mark this asset as returned?")) return;
@@ -59,6 +78,14 @@ const AssignmentPage = () => {
       fetchAll();
     } catch (err) { console.error(err); }
   };
+
+  const toggleAsset = (assetId) => {
+  setSelectedAssets((prev) =>
+    prev.includes(assetId)
+      ? prev.filter((id) => id !== assetId)
+      : [...prev, assetId]
+  );
+};
 
   const filteredAssignments = assignments.filter((a) => {
     if (filterTab === "active") return !a.IsReturned;
@@ -174,18 +201,44 @@ const AssignmentPage = () => {
                     ))}
                   </select>
                 </div>
-                <div style={s.formGroup}>
-                  <label style={s.label}>Available Asset</label>
-                  <select style={s.input} value={form.AssetID}
-                    onChange={(e) => setForm({ ...form, AssetID: e.target.value })} required>
-                    <option value="">Select Asset</option>
-                    {assets.map((ast) => (
-                      <option key={ast.AssetID} value={ast.AssetID}>
-                        {ast.AssetName} — {ast.AssetCode}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <div style={{ ...s.formGroup, gridColumn: "span 3" }}>
+  <label style={s.label}>
+    Available Assets{" "}
+    {selectedAssets.length > 0 && (
+      <span style={{ color: "#2563eb", fontWeight: "700" }}>
+        ({selectedAssets.length} selected)
+      </span>
+    )}
+  </label>
+  <div style={{
+    border: `1.5px solid ${t.border}`, borderRadius: "9px",
+    background: t.inputBg, maxHeight: "200px", overflowY: "auto", padding: "8px",
+  }}>
+    {assets.length === 0 ? (
+      <p style={{ padding: "12px", color: t.textSecondary, fontSize: "13px", margin: 0 }}>
+        No available assets
+      </p>
+    ) : (
+      assets.map((ast) => (
+        <label key={ast.AssetID} style={{
+          display: "flex", alignItems: "center", gap: "10px",
+          padding: "8px 10px", borderRadius: "7px", cursor: "pointer",
+          background: selectedAssets.includes(ast.AssetID) ? (isDark ? "#1e3a5f" : "#eff6ff") : "transparent",
+        }}>
+          <input
+            type="checkbox"
+            checked={selectedAssets.includes(ast.AssetID)}
+            onChange={() => toggleAsset(ast.AssetID)}
+            style={{ width: "15px", height: "15px", cursor: "pointer" }}
+          />
+          <span style={{ fontSize: "13px", color: t.textBody, fontWeight: selectedAssets.includes(ast.AssetID) ? "700" : "400" }}>
+            {ast.AssetName} — {ast.AssetCode}
+          </span>
+        </label>
+      ))
+    )}
+  </div>
+</div>
                 <div style={s.formGroup}>
                   <label style={s.label}>Assigned Date</label>
                   <input type="date" style={s.input} value={form.AssignedDate}

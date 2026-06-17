@@ -48,6 +48,18 @@
 │ CreatedAt   DATETIME │         │ ReturnedDate DATE    │
 └──────────────────────┘         │ IsReturned  BIT      │
                                  │ Remarks     NVARCHAR │
+                                 └──────────┬───────────┘
+                                            │ 1
+                                            │ N
+                                 ┌──────────▼───────────┐
+                                 │   ReturnRequests     │
+                                 │──────────────────────│
+                                 │ RequestID   PK INT   │
+                                 │ AssignmentID FK INT  │
+                                 │ EmployeeID  FK INT   │
+                                 │ RequestDate DATETIME │
+                                 │ Status      NVARCHAR │  ← 'Pending'|'Approved'|'Ignored'
+                                 │ Reason      NVARCHAR │
                                  └──────────────────────┘
 ```
 
@@ -55,6 +67,8 @@
 - `AssetGroups` 1 → N `Assets` (GroupID FK, nullable)
 - `Employees` 1 → N `EmployeeAssets` (EmployeeID FK)
 - `Assets` 1 → N `EmployeeAssets` (AssetID FK)
+- `EmployeeAssets` 1 → N `ReturnRequests` (AssignmentID FK)
+- `Employees` 1 → N `ReturnRequests` (EmployeeID FK)
 
 ---
 
@@ -583,6 +597,78 @@ ORDER BY ea.AssignedDate DESC;
 
 ---
 
+## DDL: Table — ReturnRequests
+
+```sql
+CREATE TABLE ReturnRequests (
+    RequestID    INT            IDENTITY(1,1) PRIMARY KEY,
+    AssignmentID INT            NOT NULL,
+    EmployeeID   INT            NOT NULL,
+    RequestDate  DATETIME       NOT NULL DEFAULT GETDATE(),
+    Status       NVARCHAR(20)   NOT NULL DEFAULT 'Pending',  -- 'Pending' | 'Approved' | 'Ignored'
+    Reason       NVARCHAR(500)  NULL,
+
+    CONSTRAINT CK_ReturnRequests_Status CHECK (Status IN ('Pending', 'Approved', 'Ignored'))
+);
+GO
+```
+
+> This table is created automatically at startup via `database.py` if it does not already exist — no manual DDL needed after the initial migration.
+
+---
+
+## Common Queries Used by the Application (continued)
+
+### 30. Submit a return request (employee-initiated)
+```sql
+-- Check for existing pending request on same assignment
+SELECT RequestID FROM ReturnRequests
+WHERE AssignmentID = 12 AND Status = 'Pending';
+
+-- Insert new request
+INSERT INTO ReturnRequests (AssignmentID, EmployeeID, Status, Reason)
+VALUES (12, 5, 'Pending', 'No longer needed');
+```
+
+### 31. List all return requests (Admin view, joined)
+```sql
+SELECT rr.RequestID, rr.AssignmentID, rr.EmployeeID, rr.RequestDate, rr.Status,
+       rr.Reason,
+       e.EmployeeName, e.EmployeeCode,
+       a.AssetName, a.AssetType, a.Brand
+FROM ReturnRequests rr
+JOIN Employees e     ON e.EmployeeID     = rr.EmployeeID
+JOIN EmployeeAssets ea ON ea.AssignmentID = rr.AssignmentID
+JOIN Assets a        ON a.AssetID        = ea.AssetID
+ORDER BY rr.RequestDate DESC;
+```
+
+### 32. Approve a return request
+```sql
+-- Mark assignment returned and free the asset
+UPDATE EmployeeAssets SET IsReturned = 1, ReturnedDate = GETDATE()
+WHERE AssignmentID = (SELECT AssignmentID FROM ReturnRequests WHERE RequestID = 7);
+
+UPDATE Assets SET Status = 'Available'
+WHERE AssetID = (SELECT AssetID FROM EmployeeAssets
+                 WHERE AssignmentID = (SELECT AssignmentID FROM ReturnRequests WHERE RequestID = 7));
+
+-- Mark request approved
+UPDATE ReturnRequests SET Status = 'Approved' WHERE RequestID = 7;
+```
+
+### 33. Ignore a return request
+```sql
+UPDATE ReturnRequests SET Status = 'Ignored' WHERE RequestID = 7;
+```
+
+### 34. Employee: view own return requests
+```sql
+SELECT AssignmentID, Status FROM ReturnRequests WHERE EmployeeID = 5;
+```
+
+---
+
 ## Notes
 
 - All tables use `IDENTITY(1,1)` for auto-increment primary keys.
@@ -594,3 +680,5 @@ ORDER BY ea.AssignedDate DESC;
 - `Users.IsApproved` controls the two-step registration flow: self-registered users start at `0` and need admin approval before they can log in.
 - `Users.PasswordHash` is nullable — employee-generated logins are inserted with `NULL` and the employee sets their own password via `/api/auth/set-password`.
 - `Users.EmployeeID` links a login account to an `Employees` record; set either at approval time or when an admin creates the user directly.
+- `ReturnRequests.Status` cycles: `Pending` → `Approved` (triggers actual return) or `Ignored` (request dismissed without returning asset).
+- `get_current_user()` now selects `EmployeeID` from `Users` so that role-scoped endpoints (e.g. assignments, return requests) can filter by the logged-in employee without an extra query.

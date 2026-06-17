@@ -156,3 +156,24 @@ def get_employees_with_logins(
         WHERE EmployeeID IS NOT NULL AND IsActive = 1
     """)).fetchall()
     return [r[0] for r in rows]
+
+
+# Checking the email with the rool id is active in db 
+class CheckEmailRequest(BaseModel):
+    email: str
+
+@router.post("/check-email")
+def check_email(body: CheckEmailRequest, db: Session = Depends(get_db)):
+    user = db.execute(text("""
+        SELECT Role, PasswordHash FROM Users
+        WHERE Email = :email AND IsActive = 1 AND IsApproved = 1
+    """), {"email": body.email}).mappings().first()
+
+    if not user:
+        return {"exists": False}
+
+    return {
+        "exists": True,
+        "role": user["Role"],
+        "has_password": user["PasswordHash"] is not None
+    }

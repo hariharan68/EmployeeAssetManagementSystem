@@ -14,16 +14,18 @@ The **Employee Asset Management System** is a full-stack web application that al
 | Backend   | FastAPI (Python), SQLAlchemy (raw SQL via text) |
 | Database  | Microsoft SQL Server (MSSQL via pyodbc)        |
 | Auth      | JWT (HS256), bcrypt password hashing           |
+| Theme     | Custom ThemeContext (dark / light mode)        |
+| Reports   | Server-side PDF generation (StreamingResponse) |
 | Hosting   | localhost:5173 (frontend), localhost:8000 (backend) |
 
 ---
 
 ## Roles
 
-| Role  | Permissions                                                  |
-|-------|--------------------------------------------------------------|
-| Admin | Full CRUD on employees, assets, asset groups, assignments    |
-| User  | Read-only access to all data, no create/update/delete access |
+| Role  | Permissions                                                              |
+|-------|--------------------------------------------------------------------------|
+| Admin | Full CRUD on employees, assets, asset groups, assignments; manage return requests; generate PDF reports |
+| User  | Read-only access; view own assignments only; submit return requests      |
 
 ---
 
@@ -39,11 +41,16 @@ The **Employee Asset Management System** is a full-stack web application that al
 
 ---
 
-### UC-02 — User Login
+### UC-02 — User Login (Multi-Step Flow)
 - **Actor**: Any approved User or Admin
-- **Trigger**: POST `/api/auth/login`
-- **Flow**: Submit email + password → fetch user by email where `IsActive = 1` → check `IsApproved = 1` (reject with "pending approval" if not) → check `PasswordHash IS NOT NULL` (reject if employee hasn't set password yet) → verify bcrypt hash → generate JWT (8-hour expiry, HS256)
-- **Outcome**: Returns `access_token`, `token_type`, `role`, `username`
+- **Step 1 — Email Check**: POST `/api/auth/check-email`
+  - Submit email → returns `{ exists, role, has_password }`
+  - If `exists = false` → show "not found" screen
+  - If Admin or `has_password = true` → proceed to password entry
+  - If `has_password = false` → redirect to Set Password step
+- **Step 2 — Password Login**: POST `/api/auth/login`
+  - Submit email + password → fetch user by email → check `IsApproved = 1` → check `PasswordHash IS NOT NULL` → verify bcrypt hash → generate JWT (8-hour expiry, HS256)
+  - Returns `access_token`, `token_type`, `role`, `username`
 - **Errors**:
   - 401 if credentials are invalid or user is inactive
   - 401 "Your account is pending admin approval" if `IsApproved = 0`
@@ -70,8 +77,8 @@ The **Employee Asset Management System** is a full-stack web application that al
   - Quick Actions sidebar: Add Employee, Add Asset, Assign Asset, View All Assets
 - **User (non-Admin) view**:
   - Welcome banner with username and role indicator
-  - Recent assignments table (last 6 records) only — no stat cards, no "View All" link, no Quick Actions sidebar
-- **Note**: Stat cards and Quick Actions panel are hidden from regular Users in the frontend; data is still fetched but not rendered
+  - Recent assignments table (last 6 records) only — no stat cards, no Quick Actions sidebar
+- **Note**: Dashboard fetches assignments via `GET /api/assignments/` which is role-scoped — Users automatically receive only their own assignments
 
 ---
 
@@ -88,6 +95,8 @@ The **Employee Asset Management System** is a full-stack web application that al
 
 - **Delete** is a **soft delete** — sets `IsActive = 0`, record is NOT removed.
 - **Get asset summary** returns: TotalAssigned, CurrentlyHolding, TotalReturned per employee.
+- Admin can download a per-employee **PDF report** via the Download Report button on each row.
+- Admin can download a **bulk PDF** of all employees via the Download All PDF button.
 
 ---
 
@@ -121,22 +130,22 @@ The **Employee Asset Management System** is a full-stack web application that al
 - Asset is always created with `Status = 'Available'`.
 - `AssetCode` and `SerialNumber` must be unique (IntegrityError caught).
 - Assets belong to an optional `AssetGroup` via `GroupID`.
+- Admin can download a per-asset **PDF report** from the Asset page.
 
 ---
 
-### UC-08 — Assign Asset to Employee (Admin Only)
+### UC-08 — Assign Asset to Employee (Admin Only, Multi-Asset)
 - **Actor**: Admin
-- **Trigger**: POST `/api/assignments/assign`
+- **Trigger**: POST `/api/assignments/assign` (called once per selected asset)
 - **Flow**:
-  1. Check asset exists
-  2. Verify `Status = 'Available'` — reject if not
-  3. Insert record into `EmployeeAssets` with `IsReturned = 0`
-  4. Update `Assets.Status = 'Assigned'`
-- **Outcome**: Asset is now locked to that employee
+  1. Admin selects employee + one or more available assets via checkboxes + date + remarks
+  2. Frontend loops over selected assets, calling assign endpoint for each
+  3. Each call: check asset exists → verify `Status = 'Available'` → insert `EmployeeAssets` with `IsReturned = 0` → update `Assets.Status = 'Assigned'`
+- **Outcome**: All selected assets are locked to that employee in a single form submit
 
 ---
 
-### UC-09 — Return Asset (Admin Only)
+### UC-09 — Return Asset (Admin-Direct)
 - **Actor**: Admin
 - **Trigger**: PUT `/api/assignments/return/{assignment_id}`
 - **Flow**:
@@ -148,18 +157,50 @@ The **Employee Asset Management System** is a full-stack web application that al
 
 ---
 
-### UC-10 — View Assignments
+### UC-10 — View Assignments (Role-Scoped)
 - **Actor**: Authenticated User (any role)
-- **Trigger**: GET `/api/assignments/` or GET `/api/assignments/employee/{id}`
-- **All assignments**: Returns joined data — Employee Name, Department, Asset Name, Asset Type, Assigned/Returned dates
-- **By employee**: Filtered view with full asset details per assignment record
+- **Trigger**: GET `/api/assignments/`
+
+| Role  | What is returned                                                   |
+|-------|--------------------------------------------------------------------|
+| Admin | All assignments across all employees (joined view)                 |
+| User  | Only assignments where `EmployeeID` matches the logged-in employee |
+
+- **Filter tabs** (frontend): All / Active / Returned
+- **All assignments view**: Employee Name, Department, Asset Name, Asset Type, Assigned/Returned dates, Status, Remarks
 - **Frontend UI by role**:
-  - **Admin**: Sees full table including an **Actions** column with a "Return" button on each active assignment; also sees the "+ Assign Asset" button to open the assign form
-  - **User**: Sees the same assignment table but the Actions column is hidden — no Return button, no Assign form button
+  - **Admin**: Full table + Actions column with "Return" button on active rows + "+ Assign Asset" form button
+  - **User**: Same table layout but Actions column hidden — no Return button, no Assign form
 
 ---
 
-### UC-11 — Admin: Approve or Reject Pending Registrations
+### UC-11 — User: Submit Return Request
+- **Actor**: Authenticated User (linked to an employee)
+- **Trigger**: POST `/api/assignments/return-request/{assignment_id}`
+- **Flow**:
+  1. User sees their active assignments
+  2. Clicks "Request Return" on an assignment → optionally enters a reason
+  3. System checks no pending request already exists for that assignment
+  4. Inserts `ReturnRequests` row with `Status = 'Pending'`
+- **Outcome**: Admin is notified via the Approvals page; asset remains assigned until Admin approves
+- **Error**: 400 if a pending request already exists; 403 if user has no linked EmployeeID
+- **Status check**: User can call `GET /api/assignments/my-return-requests` to see pending/approved/ignored status
+
+---
+
+### UC-12 — Admin: Manage Return Requests
+- **Actor**: Admin
+- **Trigger**: GET `/api/assignments/return-requests` (visible on `PendingUsersPage` / Approvals)
+- **Listed fields**: Employee Name, Employee Code, Asset Name, Asset Type, Brand, Request Date, Status, Reason
+
+| Action  | HTTP | Endpoint                                        | Effect                                        |
+|---------|------|-------------------------------------------------|-----------------------------------------------|
+| Approve | PUT  | `/api/assignments/return-request/approve/{id}`  | Mark assignment returned; free asset; Status → Approved |
+| Ignore  | PUT  | `/api/assignments/return-request/ignore/{id}`   | Status → Ignored; asset stays assigned        |
+
+---
+
+### UC-13 — Admin: Approve or Reject Pending Registrations
 - **Actor**: Admin
 - **Trigger**: GET `/api/auth/pending` → then PUT `/api/auth/approve/{user_id}` or DELETE `/api/auth/reject/{user_id}`
 
@@ -170,42 +211,66 @@ The **Employee Asset Management System** is a full-stack web application that al
 | Reject  | DELETE | `/api/auth/reject/{user_id}`      | —                         |
 
 - **Approve flow**: Sets `IsApproved = 1` and links `EmployeeID` on the `Users` row → user can now log in
-- **Reject flow**: Sets `IsActive = 0` (soft delete) — user cannot log in or re-register with same email
-- **Frontend**: `/approvals` → `PendingUsersPage` (Admin-only route); page header action button labelled "+ Add Admin" (creates a new Admin or User account directly)
+- **Reject flow**: Sets `IsActive = 0` (soft delete)
+- **Frontend**: `/approvals` → `PendingUsersPage` — this page also shows the Return Requests panel
 
 ---
 
-### UC-12 — Admin: Create User or Admin Account Directly
+### UC-14 — Admin: Create Admin Account (Admin Portal)
+- **Actor**: Admin
+- **Trigger**: POST `/api/auth/admin/create-user` (via `/admin-portal` page)
+- **Flow**: Admin provides username, email, password with role forced to `'Admin'` → account created with `IsActive = 1`, `IsApproved = 1` (skips the approval queue)
+- **Outcome**: Admin account is immediately active and can log in
+- **Error**: 400 if email/username already taken
+- **Frontend**: `/admin-portal` → `AdminPortalPage` — dedicated page for admin account management
+
+---
+
+### UC-15 — Admin: Create User Account Directly
 - **Actor**: Admin
 - **Trigger**: POST `/api/auth/admin/create-user`
-- **Flow**: Admin provides username, email, password, role (`'Admin'` or `'User'`), optional `EmployeeID` → account created with `IsActive = 1`, `IsApproved = 1` (skips the approval queue)
+- **Flow**: Admin provides username, email, password, role (`'Admin'` or `'User'`), optional `EmployeeID` → account created with `IsActive = 1`, `IsApproved = 1`
 - **Outcome**: Account is immediately active and can log in
 - **Error**: 400 if role is not `'Admin'` or `'User'`, or if email/username already taken
 
 ---
 
-### UC-13 — Admin: Generate Login for Existing Employee
+### UC-16 — Admin: Generate Login for Existing Employee
 - **Actor**: Admin
-- **Trigger**: POST `/api/auth/generate-login/{employee_id}`  
+- **Trigger**: POST `/api/auth/generate-login/{employee_id}`
   Also exposed as **"Generate Login"** button on each row in `EmployeePage`
 - **Flow**:
   1. Look up employee in `Employees` table by `employee_id`
   2. Check no login already exists for that `EmployeeID` or their email
   3. Derive username from `EmployeeName` (lowercase, no spaces); append `employee_id` if taken
   4. Insert `Users` row with `PasswordHash = NULL`, `IsApproved = 1`, `IsActive = 1`
-- **Outcome**: Login account created; employee must visit **Set Password** tab on `LoginPage` to activate it
+- **Outcome**: Login account created; employee must use **Set Password** step at login to activate it
 - **Error**: 400 if employee not found or login already exists
 - **Frontend indicator**: Button changes from "Generate Login" (green) to "Login Created" (red, non-action) after success
 
 ---
 
-### UC-14 — Employee: Set Own Password (First Time)
+### UC-17 — Employee: Set Own Password (First Time)
 - **Actor**: Employee whose login was generated by Admin (no password yet)
-- **Trigger**: POST `/api/auth/set-password`
+- **Trigger**: POST `/api/auth/set-password` (redirected here automatically by Login multi-step flow when `has_password = false`)
 - **Flow**: Submit work email + new password → verify account exists and is active/approved → verify `PasswordHash IS NULL` (reject if password already set) → hash and save
 - **Outcome**: `PasswordHash` updated; employee can now log in normally
 - **Error**: 400 if email not found, account not approved, or password already set
-- **Frontend**: "Set Password" tab on `LoginPage` (no authentication required)
+
+---
+
+### UC-18 — Admin: Generate PDF Reports
+- **Actor**: Admin
+- **Trigger**: Buttons on EmployeePage or AssetPage
+
+| Report             | Method | Endpoint                    | Output                        |
+|--------------------|--------|-----------------------------|-------------------------------|
+| Single employee    | GET    | `/api/reports/employee/{id}` | PDF with employee + asset history |
+| All employees      | GET    | `/api/reports/employees`    | PDF list of all employees     |
+| Single asset       | GET    | `/api/reports/asset/{id}`   | PDF with asset + assignment history |
+| All assets         | GET    | `/api/reports/assets`       | PDF list of all assets        |
+
+- All reports are generated server-side and returned as `application/pdf` with `Content-Disposition: attachment`.
 
 ---
 
@@ -221,50 +286,63 @@ The **Employee Asset Management System** is a full-stack web application that al
 8. Passwords are hashed with **bcrypt** before storage.
 9. Self-registered users start with `IsApproved = 0` and **cannot log in** until an Admin approves them.
 10. Admin-created accounts and generate-login accounts are auto-approved (`IsApproved = 1`).
-11. A **generate-login** account has `PasswordHash = NULL`; the employee must use **Set Password** before logging in.
+11. A **generate-login** account has `PasswordHash = NULL`; the employee must use **Set Password** before logging in. The Login page detects this automatically via the `check-email` step.
 12. An employee can only have **one login account** — blocked by `EmployeeID` and `Email` uniqueness checks.
 13. The `/assets` route is **Admin-only** (`AdminRoute`); regular Users cannot navigate to it.
+14. `GET /api/assignments/` is **role-scoped**: Admins see all; Users see only their own assignments (filtered by `EmployeeID` from JWT session).
+15. A User can only submit **one pending** return request per assignment at a time.
+16. Approving a return request immediately performs the full return (marks `IsReturned = 1`, sets asset `Status = 'Available'`).
+17. Ignoring a return request leaves the asset assigned — Admin must confirm separately.
 
 ---
 
 ## Frontend Pages
 
-| Route          | Page              | Auth Guard      | Purpose                                                  |
-|----------------|-------------------|-----------------|----------------------------------------------------------|
-| `/login`       | LoginPage         | Public          | Sign In tab + Set Password tab (first-time employees)    |
-| `/dashboard`   | DashboardPage     | ProtectedRoute  | Welcome banner + recent assignments (all users); stat cards + Quick Actions panel (Admin only) |
-| `/employees`   | EmployeePage      | ProtectedRoute  | Employee list; Admin can add, deactivate, generate login |
-| `/assets`      | AdminRoute        | Admin only      | Asset list with status filter, create/edit/delete        |
-| `/assignments` | AssignmentPage    | ProtectedRoute  | Assignment list (all users); Admin can assign assets and return them via Actions column |
-| `/approvals`   | PendingUsersPage  | AdminRoute      | Approve or reject self-registered users                  |
+| Route           | Page              | Auth Guard      | Purpose                                                             |
+|-----------------|-------------------|-----------------|---------------------------------------------------------------------|
+| `/login`        | LoginPage         | Public          | Multi-step: email check → password login or set-password flow       |
+| `/dashboard`    | DashboardPage     | ProtectedRoute  | Welcome banner + recent assignments (all users); stat cards + Quick Actions (Admin only) |
+| `/employees`    | EmployeePage      | ProtectedRoute  | Employee list; Admin can add, deactivate, generate login, download report |
+| `/assets`       | AssetPage         | AdminRoute      | Asset list with status filter, create/edit/delete, download report  |
+| `/assignments`  | AssignmentPage    | ProtectedRoute  | Assignment list (role-scoped); Admin can assign and return; Users can submit return requests |
+| `/approvals`    | PendingUsersPage  | AdminRoute      | Approve/reject self-registered users + manage employee return requests |
+| `/user-portal`  | UserPortalPage    | AdminRoute      | Placeholder — coming soon                                           |
+| `/admin-portal` | AdminPortalPage   | AdminRoute      | Create Admin accounts directly                                      |
 
 - **ProtectedRoute** — redirects to `/login` if no valid token (any authenticated user).
 - **AdminRoute** — redirects to `/login` if no valid token, and to `/dashboard` if `role !== 'Admin'`.
 
 ### Navbar visibility by role
 
-| Nav Link    | User | Admin |
-|-------------|------|-------|
-| Dashboard   | ✓    | ✓     |
-| Employees   | ✓    | ✓     |
-| Assets      | —    | ✓     |
-| Assignments | ✓    | ✓     |
-| Approvals   | —    | ✓     |
+| Nav Link      | User | Admin |
+|---------------|------|-------|
+| Dashboard     | ✓    | ✓     |
+| Employees     | ✓    | ✓     |
+| Assets        | —    | ✓     |
+| Assignments   | ✓    | ✓     |
+| Approvals     | —    | ✓     |
+| User Portal   | —    | ✓     |
+| Admin Portal  | —    | ✓     |
 
 ### In-page action visibility by role
 
-| Page        | Feature                              | User | Admin |
-|-------------|--------------------------------------|------|-------|
-| Dashboard   | Stat cards (6 metrics)               | —    | ✓     |
-| Dashboard   | Quick Actions sidebar                | —    | ✓     |
-| Dashboard   | "View All →" link in assignments     | —    | ✓     |
-| Dashboard   | Recent assignments table             | ✓    | ✓     |
-| Employees   | View Assets (side panel)             | ✓    | ✓     |
-| Employees   | Add Employee form / button           | —    | ✓     |
-| Employees   | Generate Login button (per row)      | —    | ✓     |
-| Employees   | Download Report button (per row)     | —    | ✓     |
-| Employees   | Deactivate button (per row)          | —    | ✓     |
-| Employees   | Download All PDF button              | —    | ✓     |
-| Assignments | Assignments table (read)             | ✓    | ✓     |
-| Assignments | "+ Assign Asset" button + form       | —    | ✓     |
-| Assignments | Actions column (Return button)       | —    | ✓     |
+| Page          | Feature                              | User | Admin |
+|---------------|--------------------------------------|------|-------|
+| Dashboard     | Stat cards (6 metrics)               | —    | ✓     |
+| Dashboard     | Quick Actions sidebar                | —    | ✓     |
+| Dashboard     | "View All →" link in assignments     | —    | ✓     |
+| Dashboard     | Recent assignments table             | ✓    | ✓     |
+| Employees     | View Assets (side panel)             | ✓    | ✓     |
+| Employees     | Add Employee form / button           | —    | ✓     |
+| Employees     | Generate Login button (per row)      | —    | ✓     |
+| Employees     | Download Report button (per row)     | —    | ✓     |
+| Employees     | Deactivate button (per row)          | —    | ✓     |
+| Employees     | Download All PDF button              | —    | ✓     |
+| Assignments   | Assignments table (own records only) | ✓    | ✓ (all) |
+| Assignments   | Filter tabs (All / Active / Returned)| ✓    | ✓     |
+| Assignments   | "+ Assign Asset" multi-select form   | —    | ✓     |
+| Assignments   | Actions column (Return button)       | —    | ✓     |
+| Assignments   | Request Return button (per row)      | ✓    | —     |
+| Approvals     | Pending user approval / rejection    | —    | ✓     |
+| Approvals     | Return Requests panel (approve/ignore)| —   | ✓     |
+| Admin Portal  | Create Admin account form            | —    | ✓     |

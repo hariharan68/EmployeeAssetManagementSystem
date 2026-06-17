@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { getAllEmployees, createEmployee, deleteEmployee } from "../api/employeeApi";
-import { getAssignmentsByEmployee } from "../api/assignmentApi";
+import { getAssignmentsByEmployee, submitReturnRequest, getMyReturnRequests } from "../api/assignmentApi";
 import { downloadEmployeeReport, downloadEmployeesReport } from "../api/reportApi";
 import { useAuth } from "../context/AuthContext";
 import { useTheme, getTheme } from "../context/ThemeContext";
@@ -20,15 +20,44 @@ const EmployeePage = () => {
   const [search, setSearch] = useState("");
   const [loggedInEmps, setLoggedInEmps] = useState(new Set());
   const [toast, setToast] = useState(null); // { msg, type: "success"|"error" }
+  // Return request state (for non-admin users)
+  const [myReturnRequests, setMyReturnRequests] = useState([]); // [{AssignmentID, Status}]
+  const [returnModal, setReturnModal] = useState(null); // employee whose assets to show for return
+  const [returnModalAssignments, setReturnModalAssignments] = useState([]);
+  const [returnModalLoading, setReturnModalLoading] = useState(false);
+
+  const [confirmModal, setConfirmModal]   = useState(null); // { assignmentId, assetName }
+  const [returnReason, setReturnReason]   = useState("");
+  const [reasonError, setReasonError]     = useState("");
 
   const [form, setForm] = useState({
     EmployeeCode: "", EmployeeName: "", Department: "",
     Designation: "", Email: "", Mobile: "", JoiningDate: "",
   });
+
+  useEffect(() => {
+  fetchEmployees();
+  if (isAdmin) fetchLoggedInEmps();
+  else fetchMyReturnRequests();
+}, []);
+
+// Re-check return-request statuses when the user comes back to this tab,
+// so an admin's approval clears the "Pending" badge without a manual refresh.
+useEffect(() => {
+  if (isAdmin) return;
+  const refresh = () => fetchMyReturnRequests();
+  window.addEventListener("focus", refresh);
+  return () => window.removeEventListener("focus", refresh);
+}, [isAdmin]);
+
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
 
-  useEffect(() => { fetchEmployees(); fetchLoggedInEmps(); }, []);
+  useEffect(() => {
+    fetchEmployees();
+    if (isAdmin) fetchLoggedInEmps();
+    else fetchMyReturnRequests();
+  }, []);
 
   const fetchEmployees = async () => {
     try {
@@ -45,6 +74,39 @@ const EmployeePage = () => {
       setLoggedInEmps(new Set(ids));
     } catch (err) { console.error(err); }
   };
+
+  const fetchMyReturnRequests = async () => {
+    try {
+      const data = await getMyReturnRequests();
+      setMyReturnRequests(data);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleOpenReturnModal = async (emp) => {
+    setReturnModal(emp);
+    setReturnModalLoading(true);
+    try {
+      const data = await getAssignmentsByEmployee(emp.EmployeeID);
+      setReturnModalAssignments(data.filter((a) => !a.IsReturned));
+    } catch { setReturnModalAssignments([]); }
+    finally { setReturnModalLoading(false); }
+  };
+
+  const handleSubmitReturnRequest = async () => {
+  if (!returnReason.trim()) {
+    setReasonError("Please enter a reason for return.");
+    return;
+  }
+  try {
+    await submitReturnRequest(confirmModal.assignmentId, returnReason.trim());
+    showToast("Return request sent to admin!", "success");
+    setConfirmModal(null);
+    setReturnReason("");
+    await fetchMyReturnRequests();
+  } catch (err) {
+    showToast(err.response?.data?.detail || "Failed to submit request", "error");
+  }
+};
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -288,6 +350,55 @@ const EmployeePage = () => {
         </div>
       )}
 
+      {/* Return Request Modal */}
+      {returnModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: t.surface, borderRadius: "16px", padding: "28px", width: "460px", maxWidth: "95vw", boxShadow: "0 8px 40px rgba(0,0,0,0.22)", border: `1.5px solid ${t.border}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+              <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "800", color: t.textPrimary }}>Return Request</h3>
+              <button onClick={() => setReturnModal(null)} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: t.textSecondary }}>✕</button>
+            </div>
+            <p style={{ fontSize: "13px", color: t.textSecondary, marginBottom: "16px" }}>Select which asset you want to request a return for:</p>
+            {returnModalLoading ? (
+              <p style={{ color: t.textSecondary, fontSize: "13px" }}>Loading assets...</p>
+            ) : returnModalAssignments.length === 0 ? (
+              <p style={{ color: t.textSecondary, fontSize: "13px" }}>No currently held assets found.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {returnModalAssignments.map((a) => {
+                  const alreadyRequested = myReturnRequests.some(
+                    (r) => r.AssignmentID === a.AssignmentID && r.Status === "Pending"
+                  );
+                  return (
+                    <div key={a.AssignmentID} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: "10px", border: `1.5px solid ${t.border}`, background: t.surfaceAlt }}>
+                      <div>
+                        <div style={{ fontSize: "13px", fontWeight: "600", color: t.textPrimary }}>{a.AssetName || `Asset #${a.AssetID}`}</div>
+                        <div style={{ fontSize: "11px", color: t.textSecondary }}>{a.AssetType}{a.Brand ? ` — ${a.Brand}` : ""}</div>
+                      </div>
+                      {alreadyRequested ? (
+                        <span style={{ fontSize: "11px", fontWeight: "700", color: "#dc2626", background: "#fef2f2", padding: "3px 8px", borderRadius: "5px" }}>Pending</span>
+                      ) : (
+                        <button
+                          style={{ padding: "6px 14px", borderRadius: "7px", border: "none", background: "#16a34a", color: "#fff", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+                          onClick={() => {
+                            setConfirmModal({ assignmentId: a.AssignmentID, assetName: a.AssetName });
+                            setReturnReason("");
+                            setReasonError("");
+                            setReturnModal(null);
+                          }}
+                        >
+                          Return
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div style={s.content}>
         {/* Header */}
         <div style={s.headerRow}>
@@ -312,6 +423,84 @@ const EmployeePage = () => {
             )}
           </div>
         </div>
+
+        {/* Confirmation + Reason Modal */}
+{confirmModal && (
+  <div style={{
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+    zIndex: 2001, display: "flex", alignItems: "center", justifyContent: "center"
+  }}>
+    <div style={{
+      background: t.surface, borderRadius: "16px", padding: "28px",
+      width: "460px", maxWidth: "95vw",
+      boxShadow: "0 8px 40px rgba(0,0,0,0.22)", border: `1.5px solid ${t.border}`
+    }}>
+      {/* Header */}
+      <h3 style={{ margin: "0 0 8px", fontSize: "17px", fontWeight: "800", color: t.textPrimary }}>
+        Confirm Return Request
+      </h3>
+      <p style={{ margin: "0 0 20px", fontSize: "13px", color: t.textSecondary }}>
+        Do you want to return <strong>{confirmModal.assetName}</strong>?
+      </p>
+
+      {/* Reason Textarea */}
+      <label style={{ fontSize: "11px", fontWeight: "700", color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        Reason for Return
+      </label>
+      <div style={{ position: "relative", marginTop: "6px", marginBottom: "16px" }}>
+        <textarea
+          maxLength={200}
+          rows={4}
+          value={returnReason}
+          onChange={(e) => { setReturnReason(e.target.value); setReasonError(""); }}
+          placeholder="Enter reason for returning this asset..."
+          style={{
+            width: "100%", padding: "12px 14px", borderRadius: "9px",
+            border: `1.5px solid ${reasonError ? "#fca5a5" : t.border}`,
+            background: t.inputBg, color: t.inputColor, fontSize: "13px",
+            outline: "none", resize: "none", boxSizing: "border-box",
+          }}
+        />
+        <span style={{
+          position: "absolute", bottom: "10px", right: "12px",
+          fontSize: "11px", color: t.textSecondary
+        }}>
+          {returnReason.length}/200
+        </span>
+      </div>
+
+      {reasonError && (
+        <p style={{ color: "#dc2626", fontSize: "12px", margin: "-8px 0 12px" }}>
+          {reasonError}
+        </p>
+      )}
+
+      {/* Action Buttons */}
+      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+        <button
+          onClick={() => setConfirmModal(null)}
+          style={{
+            padding: "10px 20px", borderRadius: "8px", border: `1.5px solid ${t.border}`,
+            background: t.surfaceAlt, color: t.textPrimary, fontSize: "13px",
+            fontWeight: "700", cursor: "pointer"
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSubmitReturnRequest}
+          style={{
+            padding: "10px 20px", borderRadius: "8px", border: "none",
+            background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+            color: "#fff", fontSize: "13px", fontWeight: "700", cursor: "pointer"
+          }}
+        >
+          Yes, Request Return
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Form */}
         {showForm && isAdmin && (
@@ -356,7 +545,7 @@ const EmployeePage = () => {
               <table style={s.table}>
                 <thead>
                   <tr>
-                    {["Code", "Name", "Department", "Designation", "Email", "Mobile", "Create User", "Status", "Actions"].map((h) => (
+                    {["Code", "Name", "Department", "Designation", "Email", "Mobile", "Request", "Status", "Actions"].map((h) => (
                       <th key={h} style={s.th}>{h}</th>
                     ))}
                   </tr>
@@ -375,13 +564,32 @@ const EmployeePage = () => {
                         <td style={s.td}>{emp.Email || "-"}</td>
                         <td style={s.td}>{emp.Mobile || "-"}</td>
                         <td style={s.td}>
-                          {isAdmin && (
+                          {isAdmin ? (
                             <button
                               style={hasLogin ? s.btnLoginDone : s.btnGenLogin}
                               onClick={() => handleGenerateLogin(emp)}
                             >
                               {hasLogin ? "Login Created" : "Generate Login"}
                             </button>
+                          ) : (
+                            (() => {
+                              const pendingCount = myReturnRequests.filter((r) => r.Status === "Pending").length;
+                              return (
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                  <button
+                                    style={{ padding: "6px 12px", borderRadius: "7px", border: "none", background: "#16a34a", color: "#fff", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+                                    onClick={() => handleOpenReturnModal(emp)}
+                                  >
+                                    Return Request
+                                  </button>
+                                  {pendingCount > 0 && (
+                                    <span style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700", background: "#fef2f2", color: "#dc2626" }}>
+                                      {pendingCount} Pending
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()
                           )}
                         </td>
                         <td style={s.td}>

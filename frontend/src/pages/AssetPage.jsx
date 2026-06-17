@@ -1,6 +1,10 @@
 ﻿import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import {
+  FaKeyboard, FaLaptop, FaMouse, FaMobileAlt, FaDesktop, FaBox,
+  FaCheckCircle, FaLink, FaTag, FaPencilAlt, FaTrashAlt, FaSearch,
+} from "react-icons/fa";
+import {
   getAllGroups,
   createGroup,
   updateGroup,
@@ -167,17 +171,15 @@ const AssetPage = () => {
     }
   };
 
-  const groupIcons = {
-    Laptops:   "💻",
-    Mice:      "🖱️",
-    Keyboards: "⌨️",
-    Mobiles:   "📱",
-    Monitors:  "🖥️",
-    default:   "📦",
+  const getGroupIcon = (name = "") => {
+    const n = name.toLowerCase();
+    if (n.includes("laptop"))   return <FaLaptop size={22} color="#2563eb" />;
+    if (n.includes("keyboard")) return <FaKeyboard size={22} color="#7c3aed" />;
+    if (n.includes("mouse") || n.includes("mice")) return <FaMouse size={22} color="#059669" />;
+    if (n.includes("mobile") || n.includes("phone")) return <FaMobileAlt size={22} color="#dc2626" />;
+    if (n.includes("monitor") || n.includes("screen")) return <FaDesktop size={22} color="#0891b2" />;
+    return <FaBox size={22} color="#f59e0b" />;
   };
-
-  const getGroupIcon = (name) =>
-    groupIcons[name] || groupIcons.default;
 
   const getStatusColor = (status) => {
     if (status === "Available") return { bg: isDark ? "#14532d" : "#f0fdf4", color: isDark ? "#86efac" : "#16a34a", border: isDark ? "#166534" : "#bbf7d0" };
@@ -427,7 +429,7 @@ const AssetPage = () => {
               </div>
             ) : groups.length === 0 ? (
               <div style={s.emptyBox}>
-                <div style={s.emptyIcon}>📦</div>
+                <div style={{ fontSize: "40px", marginBottom: "12px", display: "flex", justifyContent: "center" }}><FaBox size={40} color="#f59e0b" /></div>
                 <h3 style={s.emptyTitle}>No groups yet</h3>
                 <p style={s.emptySubtitle}>
                   Create your first group like Laptops, Mice or Keyboards
@@ -448,10 +450,8 @@ const AssetPage = () => {
 
                     {/* Card Top */}
                     <div style={s.groupCardTop}>
-                      <div style={s.groupIconWrap}>
-                        <span style={s.groupIconEmoji}>
-                          {getGroupIcon(group.GroupName)}
-                        </span>
+                      <div style={{ ...s.groupIconWrap, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {getGroupIcon(group.GroupName)}
                       </div>
                       <span style={s.groupCodePill}>
                         {group.GroupCode}
@@ -525,14 +525,14 @@ const AssetPage = () => {
                             onClick={() => handleEditGroup(group)}
                             title="Edit group"
                           >
-                            ✏️
+                            <FaPencilAlt size={13} color="#d97706" />
                           </button>
                           <button
                             style={s.btnIconDelete}
                             onClick={() => handleDeleteGroup(group.GroupID)}
                             title="Delete group"
                           >
-                            🗑️
+                            <FaTrashAlt size={13} color="#dc2626" />
                           </button>
                         </div>
                       )}
@@ -586,60 +586,42 @@ const AssetPage = () => {
             {/* Summary Cards */}
             <div style={s.summaryCards}>
               <div style={s.summaryCard}>
-                <div style={s.summaryCardIcon}>📦</div>
+                <div style={{ ...s.summaryCardIcon, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaBox size={20} color="#f59e0b" />
+                </div>
                 <div>
-                  <div style={s.summaryCardNumber}>
-                    {groupAssets.length}
-                  </div>
+                  <div style={s.summaryCardNumber}>{groupAssets.length}</div>
                   <div style={s.summaryCardLabel}>Total Assets</div>
                 </div>
               </div>
               <div style={s.summaryCard}>
-                <div style={{
-                  ...s.summaryCardIcon,
-                  backgroundColor: "#f0fdf4",
-                  color: "#16a34a"
-                }}>
-                  ✅
+                <div style={{ ...s.summaryCardIcon, backgroundColor: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaCheckCircle size={20} color="#16a34a" />
                 </div>
                 <div>
-                  <div style={{
-                    ...s.summaryCardNumber, color: "#16a34a"
-                  }}>
+                  <div style={{ ...s.summaryCardNumber, color: "#16a34a" }}>
                     {groupAssets.filter(a => a.Status === "Available").length}
                   </div>
                   <div style={s.summaryCardLabel}>Available</div>
                 </div>
               </div>
               <div style={s.summaryCard}>
-                <div style={{
-                  ...s.summaryCardIcon,
-                  backgroundColor: "#eff6ff",
-                  color: "#2563eb"
-                }}>
-                  🔗
+                <div style={{ ...s.summaryCardIcon, backgroundColor: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaLink size={20} color="#2563eb" />
                 </div>
                 <div>
-                  <div style={{
-                    ...s.summaryCardNumber, color: "#2563eb"
-                  }}>
+                  <div style={{ ...s.summaryCardNumber, color: "#2563eb" }}>
                     {groupAssets.filter(a => a.Status === "Assigned").length}
                   </div>
                   <div style={s.summaryCardLabel}>Assigned</div>
                 </div>
               </div>
               <div style={s.summaryCard}>
-                <div style={{
-                  ...s.summaryCardIcon,
-                  backgroundColor: "#fefce8",
-                  color: "#ca8a04"
-                }}>
-                  🏷️
+                <div style={{ ...s.summaryCardIcon, backgroundColor: "#fefce8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaTag size={20} color="#ca8a04" />
                 </div>
                 <div>
-                  <div style={s.summaryCardNumber}>
-                    {selectedGroup.GroupCode}
-                  </div>
+                  <div style={s.summaryCardNumber}>{selectedGroup.GroupCode}</div>
                   <div style={s.summaryCardLabel}>Group Code</div>
                 </div>
               </div>
@@ -656,7 +638,7 @@ const AssetPage = () => {
                     </p>
                   </div>
                   <div style={s.groupSelectedBadge}>
-                    <span style={s.groupSelectedIcon}>
+                    <span style={{ display: "flex", alignItems: "center" }}>
                       {getGroupIcon(selectedGroup.GroupName)}
                     </span>
                     <div>
@@ -789,7 +771,7 @@ const AssetPage = () => {
                 </div>
               ) : groupAssets.length === 0 ? (
                 <div style={s.emptyBox}>
-                  <div style={s.emptyIcon}>🔭</div>
+                  <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}><FaSearch size={36} color="#94a3b8" /></div>
                   <h3 style={s.emptyTitle}>No assets yet</h3>
                   <p style={s.emptySubtitle}>
                     Click Add Asset to add the first one to this group

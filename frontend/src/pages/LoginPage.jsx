@@ -1,35 +1,60 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser, setOwnPassword } from "../api/authApi";
+import { loginUser, setOwnPassword, checkEmail } from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
 
 const LoginPage = () => {
   const navigate  = useNavigate();
   const { login } = useAuth();
 
-  const [activeTab, setActiveTab] = useState("login");
+  // step: "email" | "password" | "setpassword" | "notfound"
+  const [step, setStep] = useState("email");
 
-  const [loginEmail,    setLoginEmail]    = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError,    setLoginError]    = useState("");
-  const [loginLoading,  setLoginLoading]  = useState(false);
-  const [showLoginPwd,  setShowLoginPwd]  = useState(false);
+  const [email,       setEmail]       = useState("");
+  const [emailError,  setEmailError]  = useState("");
+  const [emailLoading,setEmailLoading]= useState(false);
 
-  const [setEmail,    setSetEmail]    = useState("");
-  const [setPassword, setSetPassword] = useState("");
-  const [setConfirm,  setSetConfirm]  = useState("");
-  const [setError,    setSetError]    = useState("");
-  const [setSuccess,  setSetSuccess]  = useState("");
-  const [setLoading,  setSetLoading]  = useState(false);
+  const [password,    setPassword]    = useState("");
+  const [loginError,  setLoginError]  = useState("");
+  const [loginLoading,setLoginLoading]= useState(false);
+  const [showPwd,     setShowPwd]     = useState(false);
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirm,     setConfirm]     = useState("");
+  const [setPwdError, setSetPwdError] = useState("");
+  const [setPwdSuccess,setSetPwdSuccess] = useState("");
+  const [setPwdLoading,setSetPwdLoading] = useState(false);
   const [showNewPwd,  setShowNewPwd]  = useState(false);
   const [showConfPwd, setShowConfPwd] = useState(false);
+
+  const handleEmailContinue = async (e) => {
+    e.preventDefault();
+    setEmailLoading(true);
+    setEmailError("");
+    try {
+      const result = await checkEmail(email);
+      if (!result.exists) {
+        setStep("notfound");
+      } else if (result.role === "Admin") {
+        setStep("password");
+      } else if (result.has_password) {
+        setStep("password");
+      } else {
+        setStep("setpassword");
+      }
+    } catch {
+      setEmailError("Cannot reach server. Is the backend running?");
+    } finally {
+      setEmailLoading(false);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginLoading(true);
     setLoginError("");
     try {
-      const data = await loginUser(loginEmail, loginPassword);
+      const data = await loginUser(email, password);
       login(data.access_token, data.role, data.username);
       navigate("/dashboard");
     } catch (err) {
@@ -44,29 +69,42 @@ const LoginPage = () => {
 
   const handleSetPassword = async (e) => {
     e.preventDefault();
-    if (setPassword !== setConfirm) {
-      setSetError("Passwords do not match");
-      return;
-    }
-    if (setPassword.length < 6) {
-      setSetError("Password must be at least 6 characters");
-      return;
-    }
-    setSetLoading(true);
-    setSetError("");
-    setSetSuccess("");
+    if (newPassword !== confirm) { setSetPwdError("Passwords do not match"); return; }
+    if (newPassword.length < 6)  { setSetPwdError("Password must be at least 6 characters"); return; }
+    setSetPwdLoading(true);
+    setSetPwdError("");
+    setSetPwdSuccess("");
     try {
-      const data = await setOwnPassword(setEmail, setPassword);
-      setSetSuccess(data.message + " Redirecting to login...");
+      const data = await setOwnPassword(email, newPassword);
+      setSetPwdSuccess(data.message + " Redirecting to login...");
       setTimeout(() => {
-        setSetEmail(""); setSetPassword(""); setSetConfirm("");
-        setActiveTab("login");
+        setNewPassword(""); setConfirm(""); setSetPwdSuccess("");
+        setStep("password");
       }, 2000);
     } catch (err) {
-      setSetError(err.response?.data?.detail || "Failed to set password. Try again.");
+      setSetPwdError(err.response?.data?.detail || "Failed to set password. Try again.");
     } finally {
-      setSetLoading(false);
+      setSetPwdLoading(false);
     }
+  };
+
+  const resetToEmail = () => {
+    setStep("email");
+    setEmailError(""); setLoginError(""); setSetPwdError(""); setSetPwdSuccess("");
+    setPassword(""); setNewPassword(""); setConfirm("");
+  };
+
+  const stepTitle = {
+    email:       "Welcome Back",
+    password:    "Enter Password",
+    setpassword: "Set Your Password",
+    notfound:    "Account Not Found",
+  };
+  const stepSub = {
+    email:       "Sign in to access your dashboard",
+    password:    `Signing in as ${email}`,
+    setpassword: "Create a password to activate your account",
+    notfound:    "No account found for this email",
   };
 
   return (
@@ -112,94 +150,78 @@ const LoginPage = () => {
 
             <div style={s.greeting}>
               <div style={s.eyebrow}>EmpAssetDB</div>
-              <h1 style={s.greetingH1}>
-                {activeTab === "login" ? "Welcome Back" : "Set Your Password"}
-              </h1>
-              <p style={s.greetingP}>
-                {activeTab === "login"
-                  ? "Sign in to access your dashboard"
-                  : "First time? Set your password to get started"}
-              </p>
+              <h1 style={s.greetingH1}>{stepTitle[step]}</h1>
+              <p style={s.greetingP}>{stepSub[step]}</p>
             </div>
 
-            <div style={s.tabs}>
-              <button
-                style={{ ...s.tabBtn, ...(activeTab === "login" ? s.tabBtnActive : {}) }}
-                onClick={() => setActiveTab("login")}
-              >
-                Sign In
-              </button>
-              <button
-                style={{ ...s.tabBtn, ...(activeTab === "setpassword" ? s.tabBtnActive : {}) }}
-                onClick={() => setActiveTab("setpassword")}
-              >
-                Set Password
-              </button>
-            </div>
-
-            {/* LOGIN FORM */}
-            {activeTab === "login" && (
-              <form onSubmit={handleLogin}>
+            {/* STEP 1 — EMAIL */}
+            {step === "email" && (
+              <form onSubmit={handleEmailContinue}>
                 <div style={s.formGroup}>
                   <label style={s.label}>Email Address</label>
                   <div style={s.inputWrap}>
                     <span style={s.inputIcon}>📧</span>
                     <input
                       type="email" placeholder="Enter your email"
-                      value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)}
-                      style={s.input} required
+                      value={email} onChange={(e) => setEmail(e.target.value)}
+                      style={s.input} required autoFocus
                     />
                   </div>
                 </div>
+                {emailError && <p style={s.errorMsg}>{emailError}</p>}
+                <button type="submit" style={s.btnPrimary} disabled={emailLoading}>
+                  {emailLoading ? "Checking..." : "Continue →"}
+                </button>
+              </form>
+            )}
 
+            {/* STEP 2a — PASSWORD (admin or user with password) */}
+            {step === "password" && (
+              <form onSubmit={handleLogin}>
+                <div style={s.formGroup}>
+                  <label style={s.label}>Email Address</label>
+                  <div style={s.inputWrap}>
+                    <span style={s.inputIcon}>📧</span>
+                    <input type="email" value={email} style={{ ...s.input, background: "#f1f5f9", color: "#64748b" }} readOnly />
+                  </div>
+                </div>
                 <div style={s.formGroup}>
                   <label style={s.label}>Password</label>
                   <div style={s.inputWrap}>
                     <span style={s.inputIcon}>🔒</span>
                     <input
-                      type={showLoginPwd ? "text" : "password"}
+                      type={showPwd ? "text" : "password"}
                       placeholder="Enter your password"
-                      value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)}
-                      style={s.input} required
+                      value={password} onChange={(e) => setPassword(e.target.value)}
+                      style={s.input} required autoFocus
                     />
                   </div>
                   <div style={s.checkRow}>
-                    <input type="checkbox" id="showLogin" checked={showLoginPwd}
-                      onChange={() => setShowLoginPwd(!showLoginPwd)} style={s.checkbox} />
-                    <label htmlFor="showLogin" style={s.checkLabel}>Show password</label>
+                    <input type="checkbox" id="showPwd" checked={showPwd}
+                      onChange={() => setShowPwd(!showPwd)} style={s.checkbox} />
+                    <label htmlFor="showPwd" style={s.checkLabel}>Show password</label>
                   </div>
                 </div>
-
                 {loginError && <p style={s.errorMsg}>{loginError}</p>}
-
                 <button type="submit" style={s.btnPrimary} disabled={loginLoading}>
                   {loginLoading ? "Signing in..." : "Sign In →"}
                 </button>
-
                 <p style={s.bottomText}>
-                  First time?{" "}
-                  <span style={s.link} onClick={() => setActiveTab("setpassword")}>
-                    Set your password
-                  </span>
+                  <span style={s.link} onClick={resetToEmail}>← Use a different email</span>
                 </p>
               </form>
             )}
 
-            {/* SET PASSWORD FORM */}
-            {activeTab === "setpassword" && (
+            {/* STEP 2b — SET PASSWORD (user with no password) */}
+            {step === "setpassword" && (
               <form onSubmit={handleSetPassword}>
                 <div style={s.formGroup}>
-                  <label style={s.label}>Your Work Email</label>
+                  <label style={s.label}>Email Address</label>
                   <div style={s.inputWrap}>
                     <span style={s.inputIcon}>📧</span>
-                    <input
-                      type="email" placeholder="Enter your work email"
-                      value={setEmail} onChange={(e) => setSetEmail(e.target.value)}
-                      style={s.input} required
-                    />
+                    <input type="email" value={email} style={{ ...s.input, background: "#f1f5f9", color: "#64748b" }} readOnly />
                   </div>
                 </div>
-
                 <div style={s.formGroup}>
                   <label style={s.label}>New Password</label>
                   <div style={s.inputWrap}>
@@ -207,8 +229,8 @@ const LoginPage = () => {
                     <input
                       type={showNewPwd ? "text" : "password"}
                       placeholder="Choose a password (min 6 chars)"
-                      value={setPassword} onChange={(e) => setSetPassword(e.target.value)}
-                      style={s.input} required
+                      value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                      style={s.input} required autoFocus
                     />
                   </div>
                   <div style={s.checkRow}>
@@ -217,7 +239,6 @@ const LoginPage = () => {
                     <label htmlFor="showNew" style={s.checkLabel}>Show password</label>
                   </div>
                 </div>
-
                 <div style={s.formGroup}>
                   <label style={s.label}>Confirm Password</label>
                   <div style={s.inputWrap}>
@@ -225,7 +246,7 @@ const LoginPage = () => {
                     <input
                       type={showConfPwd ? "text" : "password"}
                       placeholder="Confirm your password"
-                      value={setConfirm} onChange={(e) => setSetConfirm(e.target.value)}
+                      value={confirm} onChange={(e) => setConfirm(e.target.value)}
                       style={s.input} required
                     />
                   </div>
@@ -235,19 +256,32 @@ const LoginPage = () => {
                     <label htmlFor="showConf" style={s.checkLabel}>Show password</label>
                   </div>
                 </div>
-
-                {setError   && <p style={s.errorMsg}>{setError}</p>}
-                {setSuccess && <p style={s.successMsg}>{setSuccess}</p>}
-
-                <button type="submit" style={s.btnPrimary} disabled={setLoading}>
-                  {setLoading ? "Setting..." : "Set Password →"}
+                {setPwdError   && <p style={s.errorMsg}>{setPwdError}</p>}
+                {setPwdSuccess && <p style={s.successMsg}>{setPwdSuccess}</p>}
+                <button type="submit" style={s.btnPrimary} disabled={setPwdLoading}>
+                  {setPwdLoading ? "Setting..." : "Set Password →"}
                 </button>
-
                 <p style={s.bottomText}>
-                  Already set your password?{" "}
-                  <span style={s.link} onClick={() => setActiveTab("login")}>Sign in</span>
+                  <span style={s.link} onClick={resetToEmail}>← Use a different email</span>
                 </p>
               </form>
+            )}
+
+            {/* STEP 2c — NOT FOUND */}
+            {step === "notfound" && (
+              <div>
+                <div style={s.notFoundBox}>
+                  <div style={s.notFoundIcon}>🚫</div>
+                  <p style={s.notFoundTitle}>No account found</p>
+                  <p style={s.notFoundDesc}>
+                    <strong>{email}</strong> is not registered in the system.<br />
+                    Please contact your <strong>Admin</strong> to generate a login for you.
+                  </p>
+                </div>
+                <button style={s.btnSecondary} onClick={resetToEmail}>
+                  ← Try a different email
+                </button>
+              </div>
             )}
 
           </div>
@@ -314,15 +348,6 @@ const s = {
   },
   greetingH1: { fontSize: "26px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.4px" },
   greetingP:  { fontSize: "13px", color: "#94a3b8", marginTop: "5px" },
-  tabs: {
-    display: "flex", background: "#e2e8f0", borderRadius: "10px",
-    padding: "4px", marginBottom: "30px", gap: "4px",
-  },
-  tabBtn: {
-    flex: 1, border: "none", background: "none", padding: "10px",
-    borderRadius: "7px", fontSize: "13px", fontWeight: "600", color: "#64748b", cursor: "pointer",
-  },
-  tabBtnActive: { background: "#fff", color: "#1e40af", boxShadow: "0 1px 4px rgba(0,0,0,0.1)" },
   formGroup: { marginBottom: "18px" },
   label: {
     display: "block", fontSize: "11px", fontWeight: "700", color: "#475569",
@@ -338,20 +363,19 @@ const s = {
     padding: "0 14px 0 42px", fontSize: "13px", color: "#0f172a",
     background: "#fff", boxSizing: "border-box", outline: "none",
   },
-  checkRow: {
-    display: "flex", alignItems: "center", gap: "8px", marginTop: "8px",
-  },
-  checkbox: {
-    width: "15px", height: "15px", cursor: "pointer", accentColor: "#2563eb",
-  },
-  checkLabel: {
-    fontSize: "13px", color: "#64748b", cursor: "pointer",
-  },
+  checkRow: { display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" },
+  checkbox: { width: "15px", height: "15px", cursor: "pointer", accentColor: "#2563eb" },
+  checkLabel: { fontSize: "13px", color: "#64748b", cursor: "pointer" },
   btnPrimary: {
     width: "100%", height: "46px", border: "none", borderRadius: "9px",
     background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff",
     fontSize: "14px", fontWeight: "700", cursor: "pointer",
     boxShadow: "0 4px 14px rgba(37,99,235,0.35)", marginTop: "4px",
+  },
+  btnSecondary: {
+    width: "100%", height: "46px", border: "1.5px solid #e2e8f0", borderRadius: "9px",
+    background: "#fff", color: "#475569", fontSize: "14px", fontWeight: "600",
+    cursor: "pointer", marginTop: "12px",
   },
   errorMsg: {
     color: "#ef4444", fontSize: "13px", marginBottom: "12px",
@@ -363,6 +387,13 @@ const s = {
   },
   bottomText: { textAlign: "center", marginTop: "22px", fontSize: "13px", color: "#64748b" },
   link: { color: "#2563eb", fontWeight: "700", cursor: "pointer" },
+  notFoundBox: {
+    textAlign: "center", padding: "32px 24px", background: "#fef2f2",
+    border: "1px solid #fecaca", borderRadius: "12px", marginBottom: "16px",
+  },
+  notFoundIcon: { fontSize: "40px", marginBottom: "12px" },
+  notFoundTitle: { fontSize: "16px", fontWeight: "700", color: "#dc2626", marginBottom: "8px" },
+  notFoundDesc: { fontSize: "13px", color: "#64748b", lineHeight: "1.6" },
 };
 
 export default LoginPage;

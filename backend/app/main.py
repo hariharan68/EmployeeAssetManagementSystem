@@ -1,12 +1,11 @@
-from fastapi import FastAPI 
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.auth.router import router as auth_router 
+from app.auth.router import router as auth_router
 from app.routes.employees import router as employee_router
 from app.routes.assets import router as asset_router
 from app.routes.emp_assets import router as assignment_router
 from app.routes.asset_groups import router as asset_group_router
 from app.routes.reports import router as report_router
-
 
 
 app=FastAPI(
