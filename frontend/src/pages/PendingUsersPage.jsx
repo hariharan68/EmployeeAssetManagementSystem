@@ -7,8 +7,8 @@ import { useTheme, getTheme } from "../context/ThemeContext";
 import { SiReasonstudios } from "react-icons/si";
 
 const PendingUsersPage = () => {
-  const { isDark } = useTheme();
-  const t = getTheme(isDark);
+  const { theme, isDark } = useTheme();
+  const t = getTheme(theme);
   const [pending, setPending]           = useState([]);
   const [employees, setEmployees]       = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -120,7 +120,7 @@ const PendingUsersPage = () => {
     actionBtns: { display: "flex", gap: "6px" },
     btnApprove: {
       padding: "7px 16px", borderRadius: "7px", border: "none",
-      background: "linear-gradient(135deg, #2563eb, #1e3a8a)", color: "#fff",
+      background: t.accent, color: "#fff",
       fontSize: "12px", fontWeight: "700", cursor: "pointer",
     },
     btnReject: {
@@ -214,7 +214,7 @@ const PendingUsersPage = () => {
                                 style={{
                                   display: "inline-flex", alignItems: "center", justifyContent: "center",
                                   width: "28px", height: "28px", borderRadius: "50%",
-                                  background: expandedReason === r.RequestID ? "#2563eb" : (isDark ? "#1e3a5f" : "#dbeafe"),
+                                  background: expandedReason === r.RequestID ? t.accent : t.codeBg,
                                   border: `1.5px solid ${expandedReason === r.RequestID ? "#2563eb" : "#93c5fd"}`,
                                   color: expandedReason === r.RequestID ? "#fff" : "#2563eb",
                                   fontSize: "11px", cursor: "pointer", transition: "all 0.2s",

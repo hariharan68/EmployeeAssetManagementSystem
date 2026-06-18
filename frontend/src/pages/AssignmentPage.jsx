@@ -9,8 +9,8 @@ import { useTheme, getTheme } from "../context/ThemeContext";
 
 const AssignmentPage = () => {
   const { isAdmin } = useAuth();
-  const { isDark } = useTheme();
-  const t = getTheme(isDark);
+  const { theme, isDark } = useTheme();
+  const t = getTheme(theme);
   const [assignments, setAssignments] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [assets, setAssets] = useState([]);
@@ -109,9 +109,9 @@ const handleAssign = async (e) => {
     pageTitle: { fontSize: "26px", fontWeight: "800", color: t.textPrimary, margin: 0, letterSpacing: "-0.5px" },
     pageSubtitle: { fontSize: "13px", color: t.textSecondary, marginTop: "4px" },
     btnPrimary: {
-      padding: "12px 24px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+      padding: "12px 24px", background: t.accent,
       color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
-      fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+      fontWeight: "700", cursor: "pointer", boxShadow: "none",
     },
     formCard: {
       background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",
@@ -129,7 +129,7 @@ const handleAssign = async (e) => {
     successMsg: { color: "#059669", fontSize: "13px", padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "9px", marginBottom: "12px" },
     tabTrack: {
       display: "inline-flex", gap: "4px", marginBottom: "16px", padding: "4px",
-      backgroundColor: isDark ? "#3f3f46" : "#dbeafe", borderRadius: "10px",
+      backgroundColor: t.codeBg, borderRadius: "10px",
     },
     tabBtn: {
       padding: "8px 20px", borderRadius: "7px", border: "none",

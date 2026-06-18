@@ -33,8 +33,8 @@ const Badge = ({ label, color, bg }) => (
 
 const UserPortalPage = () => {
   const { username: myUsername } = useAuth();
-  const { isDark } = useTheme();
-  const t = getTheme(isDark);
+  const { theme, isDark } = useTheme();
+  const t = getTheme(theme);
 
   const [users, setUsers]           = useState([]);
   const [employees, setEmployees]   = useState([]);
@@ -254,7 +254,7 @@ const UserPortalPage = () => {
     select:   { background: t.inputBg, color: t.inputColor, border: `1px solid ${t.border}`,
                 borderRadius: 8, padding: "8px 10px", fontSize: 14, outline: "none", cursor: "pointer" },
     btnPrimary: {
-      background: "#2563eb", color: "#fff", border: "none", borderRadius: 8,
+      background: "#C15A34", color: "#fff", border: "none", borderRadius: 8,
       padding: "9px 18px", fontWeight: 700, fontSize: 14, cursor: "pointer",
     },
     btnSm: (bg, color) => ({
@@ -403,8 +403,8 @@ const UserPortalPage = () => {
                         <td style={S.td}>
                           <Badge
                             label={u.Role}
-                            color={u.Role === "Admin" ? "#6d28d9" : "#1d4ed8"}
-                            bg={u.Role === "Admin" ? (isDark ? "#3b0764" : "#ede9fe") : (isDark ? "#1e3a8a" : "#dbeafe")}
+                            color={u.Role === "Admin" ? "#6d28d9" : t.accent}
+                            bg={u.Role === "Admin" ? (isDark ? "#3b0764" : "#ede9fe") : t.codeBg}
                           />
                         </td>
                         <td style={S.td}>

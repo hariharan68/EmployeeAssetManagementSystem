@@ -4,8 +4,8 @@ import { useTheme, getTheme } from "../context/ThemeContext";
 
 const Navbar = () => {
   const { username, role, logout } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
-  const t = getTheme(isDark);
+  const { theme, isDark, toggleTheme } = useTheme();
+  const t = getTheme(theme);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -34,9 +34,13 @@ const Navbar = () => {
     brand: { display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" },
     brandIcon: {
       width: "34px", height: "34px", borderRadius: "9px",
-      background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+      background: theme === "warm"
+        ? "linear-gradient(135deg, #C15A34, #8B3A1F)"
+        : theme === "dark"
+          ? "linear-gradient(135deg, #3f3f46, #27272a)"
+          : "linear-gradient(135deg, #2563eb, #1d4ed8)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      boxShadow: "0 2px 8px rgba(37,99,235,0.25)",
+      boxShadow: `0 2px 8px ${t.shadow}`,
     },
     brandText: { fontSize: "16px", fontWeight: "800", color: t.textPrimary, letterSpacing: "-0.3px" },
     divider:   { width: "1px", height: "28px", background: t.navBorder },
@@ -54,7 +58,11 @@ const Navbar = () => {
     },
     avatar: {
       width: "32px", height: "32px", borderRadius: "8px",
-      background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+      background: theme === "warm"
+        ? "linear-gradient(135deg, #C15A34, #8B3A1F)"
+        : theme === "dark"
+          ? "linear-gradient(135deg, #3f3f46, #27272a)"
+          : "linear-gradient(135deg, #2563eb, #1d4ed8)",
       color: "#fff", display: "flex", alignItems: "center",
       justifyContent: "center", fontWeight: "700", fontSize: "14px",
     },
@@ -107,6 +115,14 @@ const Navbar = () => {
       </div>
 
       <div style={st.right}>
+        {/* Settings */}
+        <button style={st.iconBtn} onClick={() => navigate("/settings")} title="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+
         {/* Dark / Light toggle */}
         <button style={st.iconBtn} onClick={toggleTheme}
           title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}>

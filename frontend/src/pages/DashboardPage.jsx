@@ -15,8 +15,8 @@ import {
 
 const DashboardPage = () => {
   const { username, role, isAdmin } = useAuth();
-  const { isDark } = useTheme();
-  const t = getTheme(isDark);
+  const { theme, isDark } = useTheme();
+  const t = getTheme(theme);
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({
@@ -49,13 +49,23 @@ const DashboardPage = () => {
     }
   };
 
+ const isWarm = theme === "warm";
+ const c = {
+   blue:   isWarm ? "#D4622A" : "#3b82f6",
+   purple: isWarm ? "#9B3A8F" : "#8b5cf6",
+   green:  isWarm ? "#2E8B57" : "#10b981",
+   amber:  isWarm ? "#C8860A" : "#f59e0b",
+   teal:   isWarm ? "#1A7A6E" : "#06b6d4",
+   pink:   isWarm ? "#B5294E" : "#ec4899",
+ };
+
  const cards = [
-   { title: "Total Employees",   value: stats.totalEmployees,   color: "#3b82f6", icon: <FaUsers size={24} />,         path: "/employees" },
-   { title: "Total Assets",      value: stats.totalAssets,      color: "#8b5cf6", icon: <FaLaptop size={24} />,        path: "/assets" },
-   { title: "Available",         value: stats.availableAssets,  color: "#10b981", icon: <FaCheckCircle size={24} />,   path: "/assets" },
-   { title: "Assigned",          value: stats.assignedAssets,   color: "#f59e0b", icon: <FaBox size={24} />,           path: "/assignments" },
-   { title: "Total Assignments", value: stats.totalAssignments, color: "#06b6d4", icon: <FaClipboardList size={24} />, path: "/assignments" },
-   { title: "Active",            value: stats.activeAssignments,color: "#ec4899", icon: <FaSyncAlt size={24} />,       path: "/assignments" },
+   { title: "Total Employees",   value: stats.totalEmployees,   color: c.blue,   icon: <FaUsers size={24} />,         path: "/employees" },
+   { title: "Total Assets",      value: stats.totalAssets,      color: c.purple, icon: <FaLaptop size={24} />,        path: "/assets" },
+   { title: "Available",         value: stats.availableAssets,  color: c.green,  icon: <FaCheckCircle size={24} />,   path: "/assets" },
+   { title: "Assigned",          value: stats.assignedAssets,   color: c.amber,  icon: <FaBox size={24} />,           path: "/assignments" },
+   { title: "Total Assignments", value: stats.totalAssignments, color: c.teal,   icon: <FaClipboardList size={24} />, path: "/assignments" },
+   { title: "Active",            value: stats.activeAssignments,color: c.pink,   icon: <FaSyncAlt size={24} />,       path: "/assignments" },
 ];
 
   const s = {
@@ -63,7 +73,11 @@ const DashboardPage = () => {
     content: { maxWidth: "1280px", margin: "0 auto", padding: "28px 32px" },
     banner: {
       position: "relative", overflow: "hidden", borderRadius: "16px",
-      background: "linear-gradient(145deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%)",
+      background: isWarm
+        ? "linear-gradient(145deg, #8B3A1F 0%, #C15A34 50%, #D4622A 100%)"
+        : isDark
+          ? "linear-gradient(145deg, #18181b 0%, #27272a 50%, #3f3f46 100%)"
+          : "linear-gradient(145deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%)",
       padding: "32px 36px", marginBottom: "28px",
     },
     circle1: {
@@ -94,7 +108,7 @@ const DashboardPage = () => {
     },
     cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" },
     cardIcon:   { fontSize: "26px" },
-    cardArrow:  { fontSize: "16px", color: t.textSecondary },
+    cardArrow:  { fontSize: "16px", color: "#1e3a8a", fontWeight: "700" },
     cardValue:  { fontSize: "36px", fontWeight: "800", lineHeight: 1, marginBottom: "6px" },
     cardTitle:  { fontSize: "13px", color: t.textBody, fontWeight: "500" },
     bottomGrid: { display: "grid", gap: "20px" },
@@ -108,7 +122,7 @@ const DashboardPage = () => {
       background: t.surfaceAlt,
     },
     sectionTitle: { fontSize: "15px", fontWeight: "800", color: t.textPrimary, margin: 0 },
-    viewAll:   { fontSize: "12px", color: "#3b82f6", fontWeight: "700", cursor: "pointer" },
+    viewAll:   { fontSize: "12px", color: t.accent, fontWeight: "700", cursor: "pointer" },
     table:     { width: "100%", borderCollapse: "collapse" },
     th: {
       padding: "12px 24px", textAlign: "left", fontSize: "11px", fontWeight: "700",
@@ -123,7 +137,7 @@ const DashboardPage = () => {
     },
     badgeReturned: {
       padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
-      background: isDark ? "#3f3f46" : "#dbeafe", color: isDark ? "#a1a1aa" : "#1e3a8a",
+      background: t.codeBg, color: t.codeColor,
     },
     emptyText: { padding: "40px 24px", textAlign: "center", color: t.textSecondary, fontSize: "13px" },
     quickCard: {
@@ -138,7 +152,7 @@ const DashboardPage = () => {
     },
     quickIcon: {
       fontSize: "20px", width: "40px", height: "40px", borderRadius: "10px",
-      background: isDark ? "#3f3f46" : "#dbeafe",
+      background: t.codeBg,
       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
     },
     quickLabel: { fontSize: "13px", fontWeight: "700", color: t.textPrimary },
@@ -231,10 +245,10 @@ const DashboardPage = () => {
               <h3 style={s.sectionTitle}>Quick Actions</h3>
               <div style={s.quickList}>
                 {[
-                  { label: "Add Employee",    icon: <FaUserPlus size={18} color="#2563eb" />,  desc: "Register a new employee",  path: "/employees" },
-                  { label: "Add Asset",       icon: <FaBriefcase size={18} color="#8b5cf6" />, desc: "Register a new asset",     path: "/assets" },
-                  { label: "Assign Asset",    icon: <FaLink size={18} color="#06b6d4" />,      desc: "Assign asset to employee", path: "/assignments" },
-                  { label: "View All Assets", icon: <FaChartBar size={18} color="#10b981" />,  desc: "Browse all assets",        path: "/assets" },
+                  { label: "Add Employee",    icon: <FaUserPlus size={18} color={c.blue} />,   desc: "Register a new employee",  path: "/employees" },
+                  { label: "Add Asset",       icon: <FaBriefcase size={18} color={c.purple} />,desc: "Register a new asset",     path: "/assets" },
+                  { label: "Assign Asset",    icon: <FaLink size={18} color={c.teal} />,       desc: "Assign asset to employee", path: "/assignments" },
+                  { label: "View All Assets", icon: <FaChartBar size={18} color={c.green} />,  desc: "Browse all assets",        path: "/assets" },
                 ].map((action) => (
                   <button key={action.label} style={s.quickBtn} onClick={() => navigate(action.path)}>
                     <span style={{ ...s.quickIcon, display: "flex", alignItems: "center", justifyContent: "center" }}>

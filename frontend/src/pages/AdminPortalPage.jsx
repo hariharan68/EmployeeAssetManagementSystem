@@ -8,8 +8,8 @@ const EMPTY_NEW_USER = {
 };
 
 const AdminPortalPage = () => {
-  const { isDark } = useTheme();
-  const t = getTheme(isDark);
+  const { theme, isDark } = useTheme();
+  const t = getTheme(theme);
 
   const [showForm, setShowForm]   = useState(false);
   const [newUser, setNewUser]     = useState(EMPTY_NEW_USER);
@@ -44,9 +44,9 @@ const AdminPortalPage = () => {
     pageTitle: { fontSize: "26px", fontWeight: "800", color: t.textPrimary, margin: 0, letterSpacing: "-0.5px" },
     pageSubtitle: { fontSize: "13px", color: t.textSecondary, marginTop: "4px" },
     btnPrimary: {
-      padding: "12px 24px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+      padding: "12px 24px", background: t.accent,
       color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
-      fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+      fontWeight: "700", cursor: "pointer", boxShadow: "none",
     },
     formCard: {
       background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",

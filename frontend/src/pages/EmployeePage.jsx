@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import { getAllEmployees, createEmployee, deleteEmployee } from "../api/employeeApi";
 import { getAssignmentsByEmployee, submitReturnRequest, getMyReturnRequests } from "../api/assignmentApi";
@@ -9,8 +9,8 @@ import { generateEmployeeLogin, getEmployeesWithLogins } from "../api/authApi";
 
 const EmployeePage = () => {
   const { isAdmin } = useAuth();
-  const { isDark } = useTheme();
-  const t = getTheme(isDark);
+  const { theme, isDark } = useTheme();
+  const t = getTheme(theme);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -18,6 +18,8 @@ const EmployeePage = () => {
   const [assignments, setAssignments] = useState([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [search, setSearch] = useState("");
+  const [hoveredBtn, setHoveredBtn] = useState(null);
+  const [downloading, setDownloading] = useState(false);
   const [loggedInEmps, setLoggedInEmps] = useState(new Set());
   const [toast, setToast] = useState(null); // { msg, type: "success"|"error" }
   // Return request state (for non-admin users)
@@ -29,6 +31,31 @@ const EmployeePage = () => {
   const [confirmModal, setConfirmModal]   = useState(null); // { assignmentId, assetName }
   const [returnReason, setReturnReason]   = useState("");
   const [reasonError, setReasonError]     = useState("");
+
+  // Draggable floating panel
+  const [panelPos, setPanelPos] = useState({ x: window.innerWidth - 380, y: 80 });
+  const dragging = useRef(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  const onPanelMouseDown = useCallback((e) => {
+    dragging.current = true;
+    dragOffset.current = { x: e.clientX - panelPos.x, y: e.clientY - panelPos.y };
+    e.preventDefault();
+  }, [panelPos]);
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!dragging.current) return;
+      setPanelPos({
+        x: Math.max(0, Math.min(window.innerWidth - 360, e.clientX - dragOffset.current.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dragOffset.current.y)),
+      });
+    };
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, []);
 
   const [form, setForm] = useState({
     EmployeeCode: "", EmployeeName: "", Department: "",
@@ -181,9 +208,9 @@ useEffect(() => {
       fontSize: "13px", outline: "none", boxSizing: "border-box",
     },
     btnPrimary: {
-      padding: "12px 24px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+      padding: "12px 24px", background: t.accent,
       color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
-      fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+      fontWeight: "700", cursor: "pointer", boxShadow: "none",
     },
     formCard: {
       background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",
@@ -260,8 +287,19 @@ useEffect(() => {
     emptySmall: { padding: "24px", color: t.textSecondary, fontSize: "13px", textAlign: "center" },
     loadingText: { padding: "24px", color: t.textSecondary, textAlign: "center", fontSize: "13px" },
     sidePanel: {
-      width: "340px", background: t.surface, border: `1.5px solid ${t.border}`, borderRadius: "14px",
-      padding: "20px", flexShrink: 0, boxShadow: `0 1px 6px ${t.shadow}`,
+      position: "fixed", width: "340px", zIndex: 500,
+      background: "linear-gradient(160deg, #0f1e3d 0%, #1a2f5a 100%)",
+      border: "1.5px solid rgba(96,165,250,0.25)",
+      borderRadius: "16px",
+      padding: "20px", boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(59,130,246,0.1)",
+      left: `${panelPos.x}px`, top: `${panelPos.y}px`,
+    },
+    panelDragBar: {
+      cursor: "grab", userSelect: "none",
+      display: "flex", alignItems: "center", gap: "6px",
+      marginBottom: "14px", padding: "7px 10px",
+      borderRadius: "8px", background: "rgba(59,130,246,0.12)",
+      border: "1.5px solid rgba(96,165,250,0.2)",
     },
     sidePanelHeader: {
       display: "flex", justifyContent: "space-between", alignItems: "flex-start",
@@ -270,55 +308,55 @@ useEffect(() => {
     spTopBar: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" },
     spAvatar: {
       width: "52px", height: "52px", borderRadius: "14px",
-      background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+      background: t.accent,
       color: "#fff", fontSize: "22px", fontWeight: "800",
       display: "flex", alignItems: "center", justifyContent: "center",
       boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
     },
     spNameBlock: { marginBottom: "16px" },
-    sidePanelTitle: { fontSize: "17px", fontWeight: "800", color: t.textPrimary, margin: "0 0 4px" },
-    sidePanelSub: { fontSize: "12px", color: t.textSecondary, margin: "0 0 8px" },
+    sidePanelTitle: { fontSize: "17px", fontWeight: "800", color: "#e0eaff", margin: "0 0 4px" },
+    sidePanelSub: { fontSize: "12px", color: "#7da4d8", margin: "0 0 8px" },
     spDeptBadge: {
       display: "inline-block", padding: "3px 10px", borderRadius: "20px",
-      background: t.codeBg, color: t.codeColor, fontSize: "11px", fontWeight: "700",
+      background: "rgba(96,165,250,0.15)", color: "#93c5fd", fontSize: "11px", fontWeight: "700",
     },
-    spDivider: { height: "1.5px", background: t.border, marginBottom: "16px" },
+    spDivider: { height: "1.5px", background: "rgba(96,165,250,0.18)", marginBottom: "16px" },
     spEmpty: {
-      textAlign: "center", padding: "28px 16px", background: t.surfaceAlt,
-      borderRadius: "12px", border: `1.5px dashed ${t.border}`,
+      textAlign: "center", padding: "28px 16px", background: "rgba(59,130,246,0.08)",
+      borderRadius: "12px", border: "1.5px dashed rgba(96,165,250,0.25)",
     },
     spAssetList: { display: "flex", flexDirection: "column", gap: "10px" },
-    spListLabel: { fontSize: "11px", fontWeight: "700", color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" },
+    spListLabel: { fontSize: "11px", fontWeight: "700", color: "#5b8abf", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" },
     assetIconWrap: {
-      width: "36px", height: "36px", borderRadius: "10px", background: t.codeBg,
+      width: "36px", height: "36px", borderRadius: "10px", background: "rgba(59,130,246,0.15)",
       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
     },
     btnClose: {
-      background: t.surfaceAlt, border: `1.5px solid ${t.border}`, borderRadius: "7px",
-      color: t.textPrimary, cursor: "pointer", fontSize: "13px",
+      background: "rgba(59,130,246,0.15)", border: "1.5px solid rgba(96,165,250,0.3)", borderRadius: "7px",
+      color: "#93c5fd", cursor: "pointer", fontSize: "13px",
       width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center",
     },
     statRow: { display: "flex", gap: "8px", marginBottom: "16px" },
     statBox: {
-      flex: 1, background: t.surfaceAlt, borderRadius: "10px", padding: "12px", textAlign: "center",
-      border: `1.5px solid ${t.border}`,
+      flex: 1, background: "rgba(59,130,246,0.10)", borderRadius: "10px", padding: "12px", textAlign: "center",
+      border: "1.5px solid rgba(96,165,250,0.2)",
     },
     statNum: { fontSize: "20px", fontWeight: "800" },
-    statLabel: { fontSize: "10px", color: t.textSecondary, marginTop: "2px", fontWeight: "700", letterSpacing: "0.06em" },
+    statLabel: { fontSize: "10px", color: "#5b8abf", marginTop: "2px", fontWeight: "700", letterSpacing: "0.06em" },
     assetItem: {
       display: "flex", alignItems: "center", gap: "12px",
-      padding: "12px 14px", background: t.surface, borderRadius: "12px",
-      border: `1.5px solid ${t.border}`, boxShadow: `0 1px 4px ${t.shadow}`,
+      padding: "12px 14px", background: "rgba(59,130,246,0.08)", borderRadius: "12px",
+      border: "1.5px solid rgba(96,165,250,0.18)",
     },
-    assetName: { fontSize: "13px", fontWeight: "600", color: t.textPrimary, marginBottom: "2px" },
-    assetMeta: { fontSize: "11px", color: t.textSecondary },
+    assetName: { fontSize: "13px", fontWeight: "600", color: "#dbeafe", marginBottom: "2px" },
+    assetMeta: { fontSize: "11px", color: "#5b8abf" },
     miniBadgeHolding: {
       padding: "3px 8px", borderRadius: "5px", fontSize: "10px", fontWeight: "700",
-      background: t.badgeActiveBg, color: t.badgeActiveColor,
+      background: "rgba(52,211,153,0.2)", color: "#6ee7b7",
     },
     miniBadgeReturned: {
       padding: "3px 8px", borderRadius: "5px", fontSize: "10px", fontWeight: "700",
-      background: t.codeBg, color: t.codeColor,
+      background: "rgba(96,165,250,0.15)", color: "#93c5fd",
     },
     toastOverlay: {
       position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -338,6 +376,39 @@ useEffect(() => {
 
   return (
     <div style={s.page}>
+      <style>{`
+        @keyframes empSpinBtn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes empFadeIn { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
+
+      {downloading && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.55)",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          animation: "empFadeIn 0.2s ease",
+        }}>
+          <svg width="64" height="64" viewBox="0 0 64 64"
+            style={{ animation: "empSpinBtn 0.8s linear infinite", marginBottom: "20px" }}>
+            {[0,1,2,3,4,5,6,7].map((i) => (
+              <line
+                key={i}
+                x1="32" y1="8" x2="32" y2="18"
+                stroke="#C15A34" strokeWidth="5" strokeLinecap="round"
+                style={{ opacity: (i + 1) / 8 }}
+                transform={`rotate(${i * 45} 32 32)`}
+              />
+            ))}
+          </svg>
+          <p style={{ color: "#fff", fontSize: "16px", fontWeight: "700", margin: 0, letterSpacing: "0.03em" }}>
+            Generating PDF...
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "12px", marginTop: "6px" }}>
+            Please wait a moment
+          </p>
+        </div>
+      )}
       <Navbar />
 
       {/* CENTERED TOAST */}
@@ -412,8 +483,23 @@ useEffect(() => {
                 onChange={(e) => setSearch(e.target.value)} style={s.searchInput} />
             </div>
             {isAdmin && (
-              <button style={s.btnReport} onClick={() => downloadEmployeesReport()}>
-                ⬇ Download All (PDF)
+              <button
+                style={{
+                  ...s.btnReport,
+                  display: "flex", alignItems: "center", gap: "8px",
+                  opacity: downloading ? 0.85 : 1,
+                  cursor: downloading ? "not-allowed" : "pointer",
+                }}
+                onClick={async () => {
+                  if (downloading) return;
+                  setDownloading(true);
+                  await new Promise((res) => setTimeout(res, 2000));
+                  await downloadEmployeesReport();
+                  setDownloading(false);
+                }}
+                disabled={downloading}
+              >
+                {downloading ? "⏳ Generating..." : "⬇ Download All (PDF)"}
               </button>
             )}
             {isAdmin && (
@@ -491,7 +577,7 @@ useEffect(() => {
           onClick={handleSubmitReturnRequest}
           style={{
             padding: "10px 20px", borderRadius: "8px", border: "none",
-            background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+            background: t.accent,
             color: "#fff", fontSize: "13px", fontWeight: "700", cursor: "pointer"
           }}
         >
@@ -532,7 +618,7 @@ useEffect(() => {
         )}
 
         <div style={s.mainLayout}>
-          <div style={s.tableCard}>
+          <div style={{ ...s.tableCard, flex: 1 }}>
             {loading ? (
               <p style={s.loadingText}>Loading employees...</p>
             ) : filtered.length === 0 ? (
@@ -600,14 +686,48 @@ useEffect(() => {
                         </td>
                         <td style={s.td}>
                           <div style={s.actionBtns}>
-                            <button style={s.btnView} onClick={() => handleViewAssets(emp)}>View Assets</button>
+                            <button
+                              style={{
+                                ...s.btnView,
+                                ...(hoveredBtn === `view-${emp.EmployeeID}` ? {
+                                  background: "#C15A34", color: "#ffffff",
+                                  border: "1.5px solid #C15A34", transform: "translateY(-1px)",
+                                } : {}),
+                                transition: "all 0.15s ease",
+                              }}
+                              onClick={() => handleViewAssets(emp)}
+                              onMouseEnter={() => setHoveredBtn(`view-${emp.EmployeeID}`)}
+                              onMouseLeave={() => setHoveredBtn(null)}
+                            >View Assets</button>
                             {isAdmin && (
-                              <button style={s.btnReport} onClick={() => downloadEmployeeReport(emp.EmployeeID, emp.EmployeeCode)}>
-                                Report
-                              </button>
+                              <button
+                                style={{
+                                  ...s.btnReport,
+                                  ...(hoveredBtn === `report-${emp.EmployeeID}` ? {
+                                    background: "#15803d", color: "#ffffff",
+                                    border: "1.5px solid #15803d", transform: "translateY(-1px)",
+                                  } : {}),
+                                  transition: "all 0.15s ease",
+                                }}
+                                onClick={() => downloadEmployeeReport(emp.EmployeeID, emp.EmployeeCode)}
+                                onMouseEnter={() => setHoveredBtn(`report-${emp.EmployeeID}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
+                              >Report</button>
                             )}
                             {isAdmin && (
-                              <button style={s.btnDelete} onClick={() => handleDelete(emp.EmployeeID)}>Deactivate</button>
+                              <button
+                                style={{
+                                  ...s.btnDelete,
+                                  ...(hoveredBtn === `del-${emp.EmployeeID}` ? {
+                                    background: "#991b1b", color: "#ffffff",
+                                    border: "1.5px solid #991b1b", transform: "translateY(-1px)",
+                                  } : {}),
+                                  transition: "all 0.15s ease",
+                                }}
+                                onClick={() => handleDelete(emp.EmployeeID)}
+                                onMouseEnter={() => setHoveredBtn(`del-${emp.EmployeeID}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
+                              >Deactivate</button>
                             )}
                           </div>
                         </td>
@@ -618,15 +738,22 @@ useEffect(() => {
               </table>
             )}
           </div>
+        </div>
+      </div>
 
-          {selectedEmployee && (
+      {selectedEmployee && (
             <div style={s.sidePanel}>
+              {/* Drag handle */}
+              <div style={s.panelDragBar} onMouseDown={onPanelMouseDown}>
+                <span style={{ fontSize: "12px", color: "#5b8abf" }}>⠿⠿</span>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#7da4d8", flex: 1 }}>Employee Details — drag to move</span>
+                <button style={s.btnClose} onMouseDown={(e) => e.stopPropagation()} onClick={() => setSelectedEmployee(null)}>&#10005;</button>
+              </div>
               {/* Header with avatar */}
               <div style={s.spTopBar}>
                 <div style={s.spAvatar}>
                   {selectedEmployee.EmployeeName.charAt(0).toUpperCase()}
                 </div>
-                <button style={s.btnClose} onClick={() => setSelectedEmployee(null)}>&#10005;</button>
               </div>
               <div style={s.spNameBlock}>
                 <h3 style={s.sidePanelTitle}>{selectedEmployee.EmployeeName}</h3>
@@ -643,7 +770,7 @@ useEffect(() => {
                   {/* Stat cards */}
                   <div style={s.statRow}>
                     <div style={s.statBox}>
-                      <div style={{ ...s.statNum, color: "#1e3a8a" }}>{assignments.length}</div>
+                      <div style={{ ...s.statNum, color: "#60a5fa" }}>{assignments.length}</div>
                       <div style={s.statLabel}>TOTAL</div>
                     </div>
                     <div style={s.statBox}>
@@ -659,8 +786,8 @@ useEffect(() => {
                   {assignments.length === 0 ? (
                     <div style={s.spEmpty}>
                       <div style={{ fontSize: "32px", marginBottom: "8px" }}>📭</div>
-                      <p style={{ margin: 0, fontWeight: "700", color: "#1e3a8a", fontSize: "13px" }}>No assets assigned</p>
-                      <p style={{ margin: "4px 0 0", color: "#3b82f6", fontSize: "12px" }}>This employee has no asset history</p>
+                      <p style={{ margin: 0, fontWeight: "700", color: "#ffffff", fontSize: "13px" }}>No assets assigned</p>
+                      <p style={{ margin: "4px 0 0", color: "#ffffff", fontSize: "12px" }}>This employee has no asset history</p>
                     </div>
                   ) : (
                     <div style={s.spAssetList}>
@@ -692,9 +819,7 @@ useEffect(() => {
                 </>
               )}
             </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };

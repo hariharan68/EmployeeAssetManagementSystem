@@ -11,6 +11,7 @@ import AssignmentPage from "./pages/AssignmentPage";
 import PendingUsersPage from "./pages/PendingUsersPage";
 import UserPortalPage from "./pages/UserPortalPage";
 import AdminPortalPage from "./pages/AdminPortalPage";
+import SettingsPage from "./pages/SettingsPage";
 
 
 const App = () => {
@@ -89,6 +90,16 @@ const App = () => {
               </AdminRoute>
             }
             />
+
+          {/* Settings */}
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />

@@ -18,8 +18,8 @@ import { useTheme, getTheme } from "../context/ThemeContext";
 
 const AssetPage = () => {
   const { isAdmin } = useAuth();
-  const { isDark } = useTheme();
-  const t = getTheme(isDark);
+  const { theme, isDark } = useTheme();
+  const t = getTheme(theme);
 
   const [view,          setView]          = useState("groups");
   const [groups,        setGroups]        = useState([]);
@@ -27,6 +27,9 @@ const AssetPage = () => {
   const [groupAssets,   setGroupAssets]   = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [loadingAssets, setLoadingAssets] = useState(false);
+  const [hoveredViewBtn, setHoveredViewBtn] = useState(null);
+  const [hoveredAssetBtn, setHoveredAssetBtn] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [showAssetForm, setShowAssetForm] = useState(false);
@@ -194,16 +197,16 @@ const AssetPage = () => {
     pageTitle: { fontSize: "26px", fontWeight: "800", color: t.textPrimary, margin: 0, letterSpacing: "-0.5px" },
     pageSubtitle: { fontSize: "13px", color: t.textSecondary, marginTop: "4px", margin: "4px 0 0" },
     btnPrimary: {
-      padding: "10px 20px", background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+      padding: "10px 20px", background: t.accent,
       color: "#fff", border: "none", borderRadius: "9px", fontSize: "13px",
-      fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+      fontWeight: "700", cursor: "pointer", boxShadow: "none",
     },
     statsRow: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "28px" },
     statCard: {
       backgroundColor: t.surface, border: `1.5px solid ${t.border}`,
       borderRadius: "14px", padding: "20px 24px", boxShadow: `0 1px 6px ${t.shadow}`,
     },
-    statNumber: { fontSize: "28px", fontWeight: "700", color: t.textPrimary, lineHeight: 1 },
+    statNumber: { fontSize: "28px", fontWeight: "800", color: isDark ? "#f4f4f5" : t.textPrimary, lineHeight: 1 },
     statLabel:  { fontSize: "13px", color: t.textSecondary, marginTop: "6px" },
     formCard: {
       backgroundColor: t.surface, border: `1.5px solid ${t.border}`,
@@ -250,11 +253,11 @@ const AssetPage = () => {
       borderRadius: "10px", padding: "12px 0", marginBottom: "14px", border: `1px solid ${t.border}`,
     },
     groupStatItem:   { display: "flex", flexDirection: "column", alignItems: "center", flex: 1 },
-    groupStatNumber: { fontSize: "20px", fontWeight: "700", color: t.textPrimary, lineHeight: 1 },
+    groupStatNumber: { fontSize: "20px", fontWeight: "800", color: isDark ? "#f4f4f5" : t.textPrimary, lineHeight: 1 },
     groupStatLabel:  { fontSize: "11px", color: t.textSecondary, marginTop: "4px" },
     groupStatDivider:{ width: "1px", height: "32px", backgroundColor: t.border },
     progressBar: { height: "4px", backgroundColor: t.codeBg, borderRadius: "2px", overflow: "hidden", marginBottom: "6px" },
-    progressFill:  { height: "100%", backgroundColor: "#2563eb", borderRadius: "2px", transition: "width 0.3s" },
+    progressFill:  { height: "100%", backgroundColor: isDark ? "#60a5fa" : "#2563eb", borderRadius: "2px", transition: "width 0.3s" },
     progressLabel: { fontSize: "11px", color: t.textSecondary, margin: "0 0 16px" },
     groupCardActions:  { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" },
     btnViewAssets: {
@@ -281,7 +284,7 @@ const AssetPage = () => {
     emptyTitle:    { fontSize: "16px", fontWeight: "700", color: t.textPrimary, margin: "0 0 8px" },
     emptySubtitle: { fontSize: "13px", color: t.textSecondary, margin: 0 },
     breadcrumb:    { display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" },
-    breadcrumbLink:  { fontSize: "13px", color: "#3b82f6", cursor: "pointer", fontWeight: "600" },
+    breadcrumbLink:  { fontSize: "13px", color: isDark ? "#60a5fa" : "#2563eb", cursor: "pointer", fontWeight: "600" },
     breadcrumbArrow: { color: t.textSecondary, fontSize: "16px" },
     breadcrumbActive:{ fontSize: "24px", fontWeight: "800", color: t.textPrimary },
     summaryCards: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" },
@@ -307,12 +310,44 @@ const AssetPage = () => {
     statusBadge: { padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" },
     btnDelete: { padding: "5px 12px", backgroundColor: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" },
     btnReport: { padding: "5px 12px", backgroundColor: "#f0fdf4", color: "#059669", border: "1px solid #bbf7d0", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" },
+    btnDownload: { padding: "9px 18px", backgroundColor: t.surface, color: t.textPrimary, border: `1.5px solid ${t.border}`, borderRadius: "9px", fontSize: "13px", fontWeight: "600", cursor: "pointer" },
   };
 
   return (
     <div style={s.page}>
-      <Navbar />
+      <style>{`
+        @keyframes assetSpinBtn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes assetFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
 
+      {downloading && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.55)",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          animation: "assetFadeIn 0.2s ease",
+        }}>
+          <svg width="64" height="64" viewBox="0 0 64 64"
+            style={{ animation: "assetSpinBtn 0.8s linear infinite", marginBottom: "20px" }}>
+            {[0,1,2,3,4,5,6,7].map((i) => (
+              <line key={i} x1="32" y1="8" x2="32" y2="18"
+                stroke="#C15A34" strokeWidth="5" strokeLinecap="round"
+                style={{ opacity: (i + 1) / 8 }}
+                transform={`rotate(${i * 45} 32 32)`}
+              />
+            ))}
+          </svg>
+          <p style={{ color: "#fff", fontSize: "16px", fontWeight: "700", margin: 0, letterSpacing: "0.03em" }}>
+            Generating PDF...
+          </p>
+          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "12px", marginTop: "6px" }}>
+            Please wait a moment
+          </p>
+        </div>
+      )}
+
+      <Navbar />
       <div style={s.content}>
 
         {/*  GROUPS VIEW  */}
@@ -328,8 +363,18 @@ const AssetPage = () => {
               </div>
               {isAdmin && (
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button style={s.btnReport} onClick={() => downloadAssetsReport()}>
-                    ⬇ Download All (PDF)
+                  <button
+                    style={{ ...s.btnDownload, opacity: downloading ? 0.7 : 1, cursor: downloading ? "not-allowed" : "pointer" }}
+                    disabled={downloading}
+                    onClick={async () => {
+                      if (downloading) return;
+                      setDownloading(true);
+                      await new Promise((res) => setTimeout(res, 2000));
+                      await downloadAssetsReport();
+                      setDownloading(false);
+                    }}
+                  >
+                    {downloading ? "⏳ Generating..." : "⬇ Download All (PDF)"}
                   </button>
                   <button
                     style={s.btnPrimary}
@@ -401,19 +446,19 @@ const AssetPage = () => {
                   <div style={s.statLabel}>Total Groups</div>
                 </div>
                 <div style={s.statCard}>
-                  <div style={{ ...s.statNumber, color: "#2563eb" }}>
+                  <div style={{ ...s.statNumber, color: isDark ? "#60a5fa" : "#2563eb" }}>
                     {groups.reduce((a, g) => a + (g.TotalAssets || 0), 0)}
                   </div>
                   <div style={s.statLabel}>Total Assets</div>
                 </div>
                 <div style={s.statCard}>
-                  <div style={{ ...s.statNumber, color: "#16a34a" }}>
+                  <div style={{ ...s.statNumber, color: isDark ? "#4ade80" : "#16a34a" }}>
                     {groups.reduce((a, g) => a + (g.AvailableCount || 0), 0)}
                   </div>
                   <div style={s.statLabel}>Available</div>
                 </div>
                 <div style={s.statCard}>
-                  <div style={{ ...s.statNumber, color: "#f59e0b" }}>
+                  <div style={{ ...s.statNumber, color: isDark ? "#fbbf24" : "#f59e0b" }}>
                     {groups.reduce((a, g) => a + (g.AssignedCount || 0), 0)}
                   </div>
                   <div style={s.statLabel}>Assigned</div>
@@ -472,7 +517,7 @@ const AssetPage = () => {
                       <div style={s.groupStatDivider} />
                       <div style={s.groupStatItem}>
                         <span style={{
-                          ...s.groupStatNumber, color: "#16a34a"
+                          ...s.groupStatNumber, color: isDark ? "#4ade80" : "#16a34a"
                         }}>
                           {group.AvailableCount || 0}
                         </span>
@@ -481,7 +526,7 @@ const AssetPage = () => {
                       <div style={s.groupStatDivider} />
                       <div style={s.groupStatItem}>
                         <span style={{
-                          ...s.groupStatNumber, color: "#2563eb"
+                          ...s.groupStatNumber, color: isDark ? "#60a5fa" : "#2563eb"
                         }}>
                           {group.AssignedCount || 0}
                         </span>
@@ -513,8 +558,17 @@ const AssetPage = () => {
                     {/* Action Buttons */}
                     <div style={s.groupCardActions}>
                       <button
-                        style={s.btnViewAssets}
+                        style={{
+                          ...s.btnViewAssets,
+                          ...(hoveredViewBtn === group.GroupID ? {
+                            backgroundColor: "#C15A34", color: "#ffffff",
+                            border: "1.5px solid #C15A34", transform: "translateY(-1px)",
+                          } : {}),
+                          transition: "all 0.15s ease",
+                        }}
                         onClick={() => fetchGroupAssets(group)}
+                        onMouseEnter={() => setHoveredViewBtn(group.GroupID)}
+                        onMouseLeave={() => setHoveredViewBtn(null)}
                       >
                         View Assets →
                       </button>
@@ -551,16 +605,6 @@ const AssetPage = () => {
             <div style={s.pageHeader}>
               <div>
                 <div style={s.breadcrumb}>
-                  <span
-                    style={s.breadcrumbLink}
-                    onClick={() => {
-                      setView("groups");
-                      setShowAssetForm(false);
-                    }}
-                  >
-                    Asset Groups
-                  </span>
-                  <span style={s.breadcrumbArrow}> › </span>
                   <span style={s.breadcrumbActive}>
                     {selectedGroup.GroupName}
                   </span>
@@ -569,18 +613,35 @@ const AssetPage = () => {
                   Managing assets in {selectedGroup.GroupName} group
                 </p>
               </div>
-              {isAdmin && (
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                 <button
-                  style={s.btnPrimary}
-                  onClick={() => {
-                    setShowAssetForm(!showAssetForm);
-                    setFormError("");
-                    setFormSuccess("");
+                  style={{
+                    display: "flex", alignItems: "center", gap: "8px",
+                    padding: "10px 18px", borderRadius: "9px",
+                    background: t.surfaceAlt, color: t.textPrimary,
+                    border: `1.5px solid ${t.border}`, fontSize: "13px",
+                    fontWeight: "700", cursor: "pointer",
                   }}
+                  onClick={() => { setView("groups"); setShowAssetForm(false); }}
                 >
-                  {showAssetForm ? "✕" : "+ Add Asset"}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5M12 5l-7 7 7 7" />
+                  </svg>
+                  Back to Groups
                 </button>
-              )}
+                {isAdmin && (
+                  <button
+                    style={s.btnPrimary}
+                    onClick={() => {
+                      setShowAssetForm(!showAssetForm);
+                      setFormError("");
+                      setFormSuccess("");
+                    }}
+                  >
+                    {showAssetForm ? "✕" : "+ Add Asset"}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Summary Cards */}
@@ -595,30 +656,30 @@ const AssetPage = () => {
                 </div>
               </div>
               <div style={s.summaryCard}>
-                <div style={{ ...s.summaryCardIcon, backgroundColor: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FaCheckCircle size={20} color="#16a34a" />
+                <div style={{ ...s.summaryCardIcon, backgroundColor: isDark ? "#14532d" : "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaCheckCircle size={20} color={isDark ? "#4ade80" : "#16a34a"} />
                 </div>
                 <div>
-                  <div style={{ ...s.summaryCardNumber, color: "#16a34a" }}>
+                  <div style={{ ...s.summaryCardNumber, color: isDark ? "#4ade80" : "#16a34a" }}>
                     {groupAssets.filter(a => a.Status === "Available").length}
                   </div>
                   <div style={s.summaryCardLabel}>Available</div>
                 </div>
               </div>
               <div style={s.summaryCard}>
-                <div style={{ ...s.summaryCardIcon, backgroundColor: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FaLink size={20} color="#2563eb" />
+                <div style={{ ...s.summaryCardIcon, backgroundColor: isDark ? "#1e3a5f" : "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaLink size={20} color={isDark ? "#60a5fa" : "#2563eb"} />
                 </div>
                 <div>
-                  <div style={{ ...s.summaryCardNumber, color: "#2563eb" }}>
+                  <div style={{ ...s.summaryCardNumber, color: isDark ? "#60a5fa" : "#2563eb" }}>
                     {groupAssets.filter(a => a.Status === "Assigned").length}
                   </div>
                   <div style={s.summaryCardLabel}>Assigned</div>
                 </div>
               </div>
               <div style={s.summaryCard}>
-                <div style={{ ...s.summaryCardIcon, backgroundColor: "#fefce8", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FaTag size={20} color="#ca8a04" />
+                <div style={{ ...s.summaryCardIcon, backgroundColor: isDark ? "#3b2f00" : "#fefce8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FaTag size={20} color={isDark ? "#fbbf24" : "#ca8a04"} />
                 </div>
                 <div>
                   <div style={s.summaryCardNumber}>{selectedGroup.GroupCode}</div>
@@ -818,16 +879,34 @@ const AssetPage = () => {
                             <div style={{ display: "flex", gap: "6px" }}>
                               {isAdmin && (
                                 <button
-                                  style={s.btnReport}
+                                  style={{
+                                    ...s.btnReport,
+                                    ...(hoveredAssetBtn === `report-${asset.AssetID}` ? {
+                                      backgroundColor: "#15803d", color: "#ffffff",
+                                      border: "1.5px solid #15803d", transform: "translateY(-1px)",
+                                    } : {}),
+                                    transition: "all 0.15s ease",
+                                  }}
                                   onClick={() => downloadAssetReport(asset.AssetID, asset.AssetCode)}
+                                  onMouseEnter={() => setHoveredAssetBtn(`report-${asset.AssetID}`)}
+                                  onMouseLeave={() => setHoveredAssetBtn(null)}
                                 >
                                   Report
                                 </button>
                               )}
                               {isAdmin && (
                                 <button
-                                  style={s.btnDelete}
+                                  style={{
+                                    ...s.btnDelete,
+                                    ...(hoveredAssetBtn === `delete-${asset.AssetID}` ? {
+                                      backgroundColor: "#991b1b", color: "#ffffff",
+                                      border: "1.5px solid #991b1b", transform: "translateY(-1px)",
+                                    } : {}),
+                                    transition: "all 0.15s ease",
+                                  }}
                                   onClick={() => handleDeleteAsset(asset.AssetID)}
+                                  onMouseEnter={() => setHoveredAssetBtn(`delete-${asset.AssetID}`)}
+                                  onMouseLeave={() => setHoveredAssetBtn(null)}
                                 >
                                   Delete
                                 </button>
