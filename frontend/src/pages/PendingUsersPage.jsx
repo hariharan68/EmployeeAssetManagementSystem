@@ -170,15 +170,16 @@ const PendingUsersPage = () => {
               <table style={s.table}>
                 <thead>
                   <tr>
-                    {["Employee", "Asset", "Type / Brand", "Requested On", "Status", "Actions"].map((h) => (
+                    {["S.No", "Employee", "Asset", "Type / Brand", "Requested On", "Status", "Actions"].map((h) => (
                       <th key={h} style={s.th}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {returnRequests.map((r) => (
+                  {returnRequests.map((r, index) => (
                     <>
                       <tr key={r.RequestID} style={s.tr}>
+                        <td style={s.td}>{index + 1}</td>
                         <td style={{ ...s.td, fontWeight: "700", color: t.textPrimary }}>
                           {r.EmployeeName}
                           {r.EmployeeCode && <span style={{ marginLeft: "6px", fontSize: "11px", color: t.textSecondary }}>({r.EmployeeCode})</span>}
@@ -274,14 +275,15 @@ const PendingUsersPage = () => {
             <table style={s.table}>
               <thead>
                 <tr>
-                  {["Username", "Email", "Registered", "Link to Employee", "Actions"].map((h) => (
+                  {["S.No", "Username", "Email", "Registered", "Link to Employee", "Actions"].map((h) => (
                     <th key={h} style={s.th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {pending.map((u) => (
+                {pending.map((u, index) => (
                   <tr key={u.UserID} style={s.tr}>
+                    <td style={s.td}>{index + 1}</td>
                     <td style={{ ...s.td, fontWeight: "700", color: t.textPrimary }}>{u.Username}</td>
                     <td style={s.td}>{u.Email}</td>
                     <td style={s.td}>{u.CreatedDate ? String(u.CreatedDate).slice(0, 10) : "-"}</td>

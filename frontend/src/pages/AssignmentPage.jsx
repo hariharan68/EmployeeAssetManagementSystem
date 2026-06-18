@@ -284,14 +284,15 @@ const handleAssign = async (e) => {
             <table style={s.table}>
               <thead>
                 <tr>
-                  {["Employee", "Department", "Asset", "Type", "Assigned Date", "Returned Date", "Remarks", "Status", isAdmin ? "Actions" : ""].filter(Boolean).map((h) => (
+                  {["S.No", "Employee", "Department", "Asset", "Type", "Assigned Date", "Returned Date", "Remarks", "Status", isAdmin ? "Actions" : ""].filter(Boolean).map((h) => (
                     <th key={h} style={s.th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredAssignments.map((a) => (
+                {filteredAssignments.map((a, index) => (
                   <tr key={a.AssignmentID} style={s.tr}>
+                    <td style={s.td}>{index + 1}</td>
                     <td style={{ ...s.td, fontWeight: "600", color: "#1e3a8a" }}>
                       {a.EmployeeName || `Emp #${a.EmployeeID}`}
                     </td>

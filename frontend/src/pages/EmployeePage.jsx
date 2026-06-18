@@ -545,18 +545,19 @@ useEffect(() => {
               <table style={s.table}>
                 <thead>
                   <tr>
-                    {["Code", "Name", "Department", "Designation", "Email", "Mobile", "Request", "Status", "Actions"].map((h) => (
+                    {["S.No", "Code", "Name", "Department", "Designation", "Email", "Mobile", "Request", "Status", "Actions"].map((h) => (
                       <th key={h} style={s.th}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((emp) => {
+                  {filtered.map((emp, index) => {
                     const hasLogin = loggedInEmps.has(emp.EmployeeID);
                     return (
                       <tr key={emp.EmployeeID} style={{
                         ...s.tr, ...(selectedEmployee?.EmployeeID === emp.EmployeeID ? s.trSelected : {}),
                       }}>
+                        <td style={s.td}>{index + 1}</td>
                         <td style={s.td}><span style={s.codeBadge}>{emp.EmployeeCode || "-"}</span></td>
                         <td style={{ ...s.td, fontWeight: "600", color: t.textPrimary }}>{emp.EmployeeName}</td>
                         <td style={s.td}>{emp.Department || "-"}</td>

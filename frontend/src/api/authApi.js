@@ -74,3 +74,27 @@ export const getEmployeesWithLogins = async () => {
   const response = await axiosInstance.get("/api/auth/employees-with-logins");
   return response.data;
 };
+
+// Admin: list all users
+export const getAllUsers = async () => {
+  const response = await axiosInstance.get("/api/auth/users");
+  return response.data;
+};
+
+// Admin: update a user
+export const updateUser = async (userId, payload) => {
+  const response = await axiosInstance.put(`/api/auth/users/${userId}`, payload);
+  return response.data;
+};
+
+// Admin: clear a user's password (force them to re-set on next login)
+export const resetUserPassword = async (userId) => {
+  const response = await axiosInstance.put(`/api/auth/users/${userId}/reset-password`);
+  return response.data;
+};
+
+// Admin: delete a user
+export const deleteUser = async (userId) => {
+  const response = await axiosInstance.delete(`/api/auth/users/${userId}`);
+  return response.data;
+};
