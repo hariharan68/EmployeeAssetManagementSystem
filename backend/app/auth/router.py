@@ -57,12 +57,20 @@ def get_my_profile(
 
 # ── Admin: create a user or admin directly ─────────────────────────────────
 
+ADMIN_LIMIT = 5
+
+def get_admin_count(db: Session) -> int:
+    row = db.execute(text("SELECT COUNT(*) FROM Users WHERE Role = 'Admin' AND IsActive = 1")).scalar()
+    return row or 0
+
 @router.post("/admin/create-user", status_code=201)
 def admin_create_user_route(
     payload:      AdminCreateUser,
     db:           Session = Depends(get_db),
     current_user: dict    = Depends(require_admin)
 ):
+    if payload.role == "Admin" and get_admin_count(db) >= ADMIN_LIMIT:
+        raise HTTPException(status_code=400, detail=f"Admin limit reached. Only {ADMIN_LIMIT} admins are allowed.")
     message, error = service.admin_create_user(
         db,
         payload.username,
@@ -159,6 +167,92 @@ def get_employees_with_logins(
 
 
 # Checking the email with the rool id is active in db 
+# ── Admin: list ALL users ──────────────────────────────────────────────────
+@router.get("/users")
+def list_all_users(
+    db:           Session = Depends(get_db),
+    current_user: dict    = Depends(require_admin)
+):
+    rows = db.execute(text("""
+        SELECT UserID, Username, Email, Role, IsActive, IsApproved, CreatedDate, EmployeeID
+        FROM Users
+        ORDER BY CreatedDate DESC
+    """)).mappings().all()
+    return [
+        {
+            "UserID":      r["UserID"],
+            "Username":    r["Username"],
+            "Email":       r["Email"],
+            "Role":        r["Role"],
+            "IsActive":    int(r["IsActive"]),
+            "IsApproved":  int(r["IsApproved"]),
+            "CreatedDate": r["CreatedDate"],
+            "EmployeeID":  r["EmployeeID"],
+        }
+        for r in rows
+    ]
+
+
+# ── Admin: update a user ────────────────────────────────────────────────────
+class UpdateUserRequest(BaseModel):
+    username:   str | None = None
+    email:      str | None = None
+    role:       str | None = None
+    isActive:   int | None = None
+    isApproved: int | None = None
+    employeeId: int | None = None
+
+@router.put("/users/{user_id}")
+def update_user(
+    user_id:      int,
+    body:         UpdateUserRequest,
+    db:           Session = Depends(get_db),
+    current_user: dict    = Depends(require_admin)
+):
+    if body.role == "Admin":
+        current_role = db.execute(text("SELECT Role FROM Users WHERE UserID = :id"), {"id": user_id}).scalar()
+        if current_role != "Admin" and get_admin_count(db) >= ADMIN_LIMIT:
+            raise HTTPException(status_code=400, detail=f"Admin limit reached. Only {ADMIN_LIMIT} admins are allowed.")
+    fields, params = [], {"id": user_id}
+    if body.username   is not None: fields.append("Username = :username");   params["username"]   = body.username
+    if body.email      is not None: fields.append("Email = :email");         params["email"]      = body.email
+    if body.role       is not None: fields.append("Role = :role");           params["role"]       = body.role
+    if body.isActive   is not None: fields.append("IsActive = :isActive");   params["isActive"]   = body.isActive
+    if body.isApproved is not None: fields.append("IsApproved = :isApproved"); params["isApproved"] = body.isApproved
+    if body.employeeId is not None: fields.append("EmployeeID = :employeeId"); params["employeeId"] = body.employeeId
+    if not fields:
+        raise HTTPException(status_code=400, detail="Nothing to update")
+    db.execute(text(f"UPDATE Users SET {', '.join(fields)} WHERE UserID = :id"), params)
+    db.commit()
+    return {"message": "User updated"}
+
+
+# ── Admin: clear a user's password (force re-set on next login) ────────────
+@router.put("/users/{user_id}/reset-password")
+def reset_password(
+    user_id:      int,
+    db:           Session = Depends(get_db),
+    current_user: dict    = Depends(require_admin)
+):
+    db.execute(text("UPDATE Users SET PasswordHash = NULL WHERE UserID = :id"), {"id": user_id})
+    db.commit()
+    return {"message": "Password cleared. User must set a new password on next login."}
+
+
+# ── Admin: delete a user ────────────────────────────────────────────────────
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id:      int,
+    db:           Session = Depends(get_db),
+    current_user: dict    = Depends(require_admin)
+):
+    if user_id == current_user["UserID"]:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    db.execute(text("DELETE FROM Users WHERE UserID = :id"), {"id": user_id})
+    db.commit()
+    return {"message": "User deleted"}
+
+
 class CheckEmailRequest(BaseModel):
     email: str
 
