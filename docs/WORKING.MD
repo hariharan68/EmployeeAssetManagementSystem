@@ -82,3 +82,6 @@ print(pwd_context.hash("Admin@123"))
 - The backend uses **Windows Authentication** for MSSQL — no SQL username/password needed in the connection string.
 - PDF report generation uses `reportlab` / `fpdf` — ensure it's in `requirements.txt`.
 - The `ReturnRequests` table includes a `Reason` column (NVARCHAR) for the employee's return justification.
+- **Active admins are capped at 5** (`ADMIN_LIMIT` in `app/auth/router.py`). The cap is enforced on both `admin/create-user` and on `PUT /api/auth/users/{id}` when promoting an existing user to Admin.
+- The **User Portal** (`/user-portal`, Admin only) is backed by the `/api/auth/users` endpoints — list, update, reset-password (clears `PasswordHash` so the user re-sets it on next login), and delete (admins cannot delete their own account).
+- The frontend ships **three themes** — Classic Blue, Warm Cream, Dark Mode — chosen on the Settings page (`/settings`). `ThemeContext` persists the selection in `localStorage`; no backend involvement.

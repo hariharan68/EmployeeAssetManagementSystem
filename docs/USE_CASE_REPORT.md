@@ -14,7 +14,7 @@ The **Employee Asset Management System** is a full-stack web application that al
 | Backend   | FastAPI (Python), SQLAlchemy (raw SQL via text) |
 | Database  | Microsoft SQL Server (MSSQL via pyodbc)        |
 | Auth      | JWT (HS256), bcrypt password hashing           |
-| Theme     | Custom ThemeContext (dark / light mode)        |
+| Theme     | Custom ThemeContext — 3 themes (Classic Blue / Warm Cream / Dark) |
 | Reports   | Server-side PDF generation (StreamingResponse) |
 | Hosting   | localhost:5173 (frontend), localhost:8000 (backend) |
 
@@ -221,7 +221,7 @@ The **Employee Asset Management System** is a full-stack web application that al
 - **Trigger**: POST `/api/auth/admin/create-user` (via `/admin-portal` page)
 - **Flow**: Admin provides username, email, password with role forced to `'Admin'` → account created with `IsActive = 1`, `IsApproved = 1` (skips the approval queue)
 - **Outcome**: Admin account is immediately active and can log in
-- **Error**: 400 if email/username already taken
+- **Error**: 400 if email/username already taken, or if the active-admin count is already at the cap of **5** (`ADMIN_LIMIT`)
 - **Frontend**: `/admin-portal` → `AdminPortalPage` — dedicated page for admin account management
 
 ---
@@ -274,6 +274,36 @@ The **Employee Asset Management System** is a full-stack web application that al
 
 ---
 
+### UC-19 — Admin: Manage Users (User Portal)
+- **Actor**: Admin
+- **Trigger**: `/user-portal` → `UserPortalPage`
+- **Flow**:
+  1. List every account via GET `/api/auth/users` (returns UserID, Username, Email, Role, IsActive, IsApproved, CreatedDate, EmployeeID)
+  2. Client-side **search** (username/email) and **filters** by role, status, and approval
+  3. **Create** a user via POST `/api/auth/admin/create-user`
+  4. **Edit** a user via PUT `/api/auth/users/{id}` (partial update of username/email/role/IsActive/IsApproved/EmployeeID)
+  5. **Reset password** via PUT `/api/auth/users/{id}/reset-password` — clears `PasswordHash` so the user re-sets it on next login
+  6. **Delete** via DELETE `/api/auth/users/{id}`
+
+| Action | Method | Endpoint                                   |
+|--------|--------|--------------------------------------------|
+| List   | GET    | `/api/auth/users`                          |
+| Update | PUT    | `/api/auth/users/{id}`                     |
+| Reset  | PUT    | `/api/auth/users/{id}/reset-password`      |
+| Delete | DELETE | `/api/auth/users/{id}`                     |
+
+- **Error**: 400 if promoting to Admin would exceed the 5-admin cap; 400 "Cannot delete yourself" when deleting your own account
+
+---
+
+### UC-20 — Any User: Change Theme (Settings)
+- **Actor**: Any authenticated user
+- **Trigger**: `/settings` → `SettingsPage`, or the Navbar gear / theme-toggle icons
+- **Flow**: Select one of three themes — **Classic Blue**, **Warm Cream**, **Dark Mode** — each shown with a live mini-preview card
+- **Outcome**: `ThemeContext` applies the palette app-wide and persists the choice in `localStorage` (`theme`, plus `prevTheme` for the Navbar Dark toggle). No backend call involved.
+
+---
+
 ## Business Rules
 
 1. An asset can only be assigned to **one employee at a time** (enforced by Available/Assigned status check).
@@ -291,6 +321,10 @@ The **Employee Asset Management System** is a full-stack web application that al
 13. The `/assets` route is **Admin-only** (`AdminRoute`); regular Users cannot navigate to it.
 14. `GET /api/assignments/` is **role-scoped**: Admins see all; Users see only their own assignments (filtered by `EmployeeID` from JWT session).
 15. A User can only submit **one pending** return request per assignment at a time.
+16. The system allows at most **5 active admins** (`ADMIN_LIMIT`) — enforced when creating an admin or promoting a user to Admin.
+17. An admin **cannot delete their own account** via the User Portal.
+18. Resetting a user's password clears `PasswordHash` to `NULL`; the user must use the **Set Password** flow on their next login.
+19. Theme selection is a **client-only** preference stored in `localStorage` — there is no backend persistence or user-profile field for it.
 16. Approving a return request immediately performs the full return (marks `IsReturned = 1`, sets asset `Status = 'Available'`).
 17. Ignoring a return request leaves the asset assigned — Admin must confirm separately.
 
@@ -306,8 +340,9 @@ The **Employee Asset Management System** is a full-stack web application that al
 | `/assets`       | AssetPage         | AdminRoute      | Asset list with status filter, create/edit/delete, download report  |
 | `/assignments`  | AssignmentPage    | ProtectedRoute  | Assignment list (role-scoped); Admin can assign and return; Users can submit return requests |
 | `/approvals`    | PendingUsersPage  | AdminRoute      | Approve/reject self-registered users + manage employee return requests |
-| `/user-portal`  | UserPortalPage    | AdminRoute      | Placeholder — coming soon                                           |
-| `/admin-portal` | AdminPortalPage   | AdminRoute      | Create Admin accounts directly                                      |
+| `/user-portal`  | UserPortalPage    | AdminRoute      | Full user CRUD — search/filter by role, status & approval; create, edit, reset password, delete |
+| `/admin-portal` | AdminPortalPage   | AdminRoute      | Create Admin accounts directly (max 5 active admins)                |
+| `/settings`     | SettingsPage      | ProtectedRoute  | Appearance — pick theme (Classic Blue / Warm Cream / Dark Mode)     |
 
 - **ProtectedRoute** — redirects to `/login` if no valid token (any authenticated user).
 - **AdminRoute** — redirects to `/login` if no valid token, and to `/dashboard` if `role !== 'Admin'`.

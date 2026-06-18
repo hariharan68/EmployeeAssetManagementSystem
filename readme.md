@@ -6,12 +6,12 @@ A full-stack web application for managing employee asset assignments within an o
 
 ## Tech Stack
 
-| Layer     | Technology                                      |
-|-----------|-------------------------------------------------|
+| Layer     | Technology                                               |
+|-----------|----------------------------------------------------------|
 | Frontend  | React 19, Vite 8, React Router v7, Axios, TanStack Query |
-| Backend   | FastAPI, SQLAlchemy, Pydantic, Python-Jose (JWT) |
-| Database  | Microsoft SQL Server (Windows Authentication)   |
-| Auth      | JWT Bearer tokens, bcrypt password hashing      |
+| Backend   | FastAPI, SQLAlchemy, Pydantic, Python-Jose (JWT)         |
+| Database  | Microsoft SQL Server (Windows Authentication)            |
+| Auth      | JWT Bearer tokens, bcrypt password hashing               |
 
 ---
 
@@ -21,10 +21,10 @@ A full-stack web application for managing employee asset assignments within an o
 - **Asset management** — Create, update, and categorize assets by group
 - **Assignment tracking** — Assign assets to employees, track status and return requests
 - **User approval flow** — New registrations require admin approval before access
-- **Admin portal** — Create admin users and manage existing accounts
-- **User portal** — Admin-managed CRUD for employee user accounts
+- **Admin portal** — Create admin users (capped at 5 active admins) and manage existing accounts
+- **User portal** — Full admin CRUD for user accounts: search/filter by role, status & approval, create, edit, reset password, and delete users
 - **PDF reports** — Generate asset/assignment reports via ReportLab
-- **Dark/light theme** — Persistent theme toggle across the app
+- **Three-theme appearance** — Classic Blue, Warm Cream, and Dark Mode, chosen from the Settings page; the Navbar toggle flips Dark on/off. Selection persists in `localStorage`
 
 ---
 
@@ -47,7 +47,7 @@ Empassetmanagement/
 ├── frontend/
 │   └── src/
 │       ├── App.jsx              # Route definitions
-│       ├── context/             # AuthContext, ThemeContext
+│       ├── context/             # AuthContext, ThemeContext (3-theme palette)
 │       ├── components/          # Navbar, ProtectedRoute, AdminRoute
 │       ├── api/                 # Axios wrappers per domain
 │       └── pages/
@@ -57,8 +57,9 @@ Empassetmanagement/
 │           ├── AssetPage.jsx         # Admin only
 │           ├── AssignmentPage.jsx
 │           ├── PendingUsersPage.jsx  # Admin only
-│           ├── UserPortalPage.jsx    # Admin only
-│           └── AdminPortalPage.jsx   # Admin only
+│           ├── UserPortalPage.jsx    # Admin only — full user CRUD
+│           ├── AdminPortalPage.jsx   # Admin only
+│           └── SettingsPage.jsx      # Theme picker (all users)
 └── docs/
     ├── ARCHITECTURE_DIAGRAM.md
     ├── DB_DESIGN_MSSQL.md
@@ -156,6 +157,10 @@ print(pwd_context.hash("Admin@123"))
 | `POST /api/auth/approve`           | Approve a pending user (Admin)         |
 | `POST /api/auth/reject`            | Reject a pending user (Admin)          |
 | `POST /api/auth/admin/create-user` | Create a user directly (Admin)         |
+| `GET  /api/auth/users`             | List all users (Admin)                 |
+| `PUT  /api/auth/users/{id}`        | Update a user (Admin)                  |
+| `PUT  /api/auth/users/{id}/reset-password` | Clear a user's password (Admin)|
+| `DELETE /api/auth/users/{id}`      | Delete a user (Admin)                  |
 | `/api/employees/*`                 | Employee CRUD                          |
 | `/api/assets/*`                    | Asset CRUD (Admin)                     |
 | `/api/emp-assets/*`                | Asset assignment & return requests     |
@@ -166,15 +171,16 @@ print(pwd_context.hash("Admin@123"))
 
 ## Roles & Permissions
 
-| Feature                      | Admin | Employee |
-|------------------------------|:-----:|:--------:|
-| View dashboard               |  ✓   |    ✓     |
-| View employees               |  ✓   |    ✓     |
-| Manage assets                |  ✓   |          |
-| View/submit assignments      |  ✓   |    ✓     |
-| Approve user registrations   |  ✓   |          |
-| User portal (manage users)   |  ✓   |          |
-| Admin portal (create admins) |  ✓   |          |
+| Feature                      | Admin | Employee  
+|------------------------------|:-----:|:--------:
+| View dashboard               |  ✓   |    ✓      
+| View employees               |  ✓   |    ✓      
+| Manage assets                |  ✓   |            
+| View/submit assignments      |  ✓   |    ✓       
+| Approve user registrations   |  ✓   |           
+| User portal (manage users)   |  ✓   |           
+| Admin portal (create admins) |  ✓   |           
+| Settings (change theme)      |  ✓   |    ✓      
 
 ---
 
@@ -183,3 +189,5 @@ print(pwd_context.hash("Admin@123"))
 - The backend uses **Windows Authentication** for MSSQL — no SQL username/password needed in the connection string.
 - The `ReturnRequests` table (including a `Reason` column) is auto-created on backend startup if it doesn't exist.
 - PDF reports use `reportlab` / `fpdf` — ensure these are listed in `requirements.txt`.
+- **Active admins are capped at 5** (`ADMIN_LIMIT` in `auth/router.py`) — creating or promoting a 6th admin returns a 400.
+- **Theme system**: `ThemeContext` stores a theme string (`light` / `warm` / `dark`) in `localStorage`; `getTheme(theme)` returns the full colour palette consumed by every page. The Navbar toggle remembers the last non-dark theme so toggling Dark off restores Classic Blue or Warm Cream.

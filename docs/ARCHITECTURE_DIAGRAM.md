@@ -10,10 +10,10 @@
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐    │
 │  │LoginPage │  │Dashboard │  │Employees │  │Assets/Assignments│    │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘    │
-│  ┌──────────┐  ┌────────────────┐  ┌──────────────────────────┐     │
-│  │Approvals │  │  AdminPortal   │  │      UserPortal          │     │
-│  │(Pending) │  │(create admins) │  │  (coming soon)           │     │
-│  └──────────┘  └────────────────┘  └──────────────────────────┘     │
+│  ┌──────────┐  ┌────────────────┐  ┌────────────┐  ┌──────────┐    │
+│  │Approvals │  │  AdminPortal   │  │ UserPortal │  │ Settings │    │
+│  │(Pending) │  │(create admins) │  │(user CRUD) │  │ (themes) │    │
+│  └──────────┘  └────────────────┘  └────────────┘  └──────────┘    │
 │                                                                     │
 │                    ┌─────────▼──────────┐                           │
 │                    │   AuthContext.jsx   │ ← token, role, username  │
@@ -21,7 +21,9 @@
 │                    │                    │   localStorage            │
 │                    └─────────┬──────────┘                           │
 │                    ┌─────────▼──────────┐                           │
-│                    │  ThemeContext.jsx   │ ← dark/light mode state  │
+│                    │  ThemeContext.jsx   │ ← theme string           │
+│                    │                    │   (light/warm/dark)       │
+│                    │                    │   + getTheme() palette    │
 │                    └─────────┬──────────┘                           │
 │                    ┌─────────▼──────────┐                           │
 │                    │  axiosInstance.js   │ ← attaches Bearer token  │
@@ -56,6 +58,9 @@
 │  │  create-user│         │                                          │
 │  │  gen-login  │         │                                          │
 │  │  set-passwd │         │                                          │
+│  │  users (CRUD│         │                                          │
+│  │   + reset-  │         │                                          │
+│  │   password) │         │                                          │
 │  └──────┬──────┘         │                                          │
 │         │                │                                          │
 │  ┌──────▼────────────────▼─────────────────────────────────────┐    │
@@ -264,6 +269,54 @@ report_service.py
 
 ---
 
+## Data Flow: User Management (Admin User Portal)
+
+```
+Admin User  (/user-portal)
+  │
+  │  GET /api/auth/users  ← list every account
+  │     (UserID, Username, Email, Role, IsActive, IsApproved,
+  │      CreatedDate, EmployeeID)
+  │
+  │  Client-side search + filters (role / status / approval)
+  │
+  ├─ Create:  POST /api/auth/admin/create-user
+  │             └─ blocked with 400 if Role=Admin and active admins ≥ 5
+  │
+  ├─ Edit:    PUT /api/auth/users/{id}
+  │             └─ partial update; promoting to Admin re-checks the 5-admin cap
+  │
+  ├─ Reset:   PUT /api/auth/users/{id}/reset-password
+  │             └─ sets PasswordHash = NULL → user re-sets it on next login
+  │
+  └─ Delete:  DELETE /api/auth/users/{id}
+                └─ 400 "Cannot delete yourself" guard
+```
+
+---
+
+## UI: Theme System
+
+```
+ThemeContext.jsx
+  │  theme string in localStorage:  "light" | "warm" | "dark"
+  │  prevTheme in localStorage: last non-dark theme (for toggle restore)
+  │
+  ├─ setTheme(t)      ← Settings page selects any of the 3 themes
+  ├─ toggleTheme()    ← Navbar gear's neighbour flips Dark on/off,
+  │                      restoring prevTheme when turning Dark off
+  └─ getTheme(theme)  ← returns the full palette object
+                         (pageBg, surface, border, textPrimary, accent,
+                          navBg, badge colours, …) consumed by every page
+
+Themes:  Classic Blue (light)  ·  Warm Cream (warm)  ·  Dark Mode (dark)
+
+Settings page (/settings, all logged-in users) renders a live mini-preview
+card per theme and marks the active one.
+```
+
+---
+
 ## Folder Structure
 
 ```
@@ -306,7 +359,8 @@ Empassetmanagement/
         ├── main.jsx
         ├── context/
         │   ├── AuthContext.jsx  ← token, role, username state (localStorage)
-        │   └── ThemeContext.jsx ← isDark / toggleTheme (dark-light mode)
+        │   └── ThemeContext.jsx ← theme string (light/warm/dark), setTheme,
+        │                           toggleTheme, getTheme() palette factory
         ├── api/
         │   ├── axiosInstance.js ← base URL + auth header injection
         │   ├── authApi.js       ← login, register, checkEmail, setOwnPassword, etc.
@@ -316,7 +370,7 @@ Empassetmanagement/
         │   ├── assetGroupApi.js
         │   └── reportApi.js
         ├── components/
-        │   ├── Navbar.jsx       ← role-aware nav links + dark/light toggle
+        │   ├── Navbar.jsx       ← role-aware nav links + Settings & theme toggle
         │   ├── ProtectedRoute.jsx
         │   └── AdminRoute.jsx
         └── pages/
@@ -329,8 +383,10 @@ Empassetmanagement/
             │                           Users see own assignments only
             ├── PendingUsersPage.jsx ← Approve/reject registrations +
             │                           Manage return requests (Admin)
-            ├── AdminPortalPage.jsx  ← Create Admin accounts (Admin only)
-            └── UserPortalPage.jsx   ← Placeholder (Admin only, coming soon)
+            ├── AdminPortalPage.jsx  ← Create Admin accounts (Admin only, max 5)
+            ├── UserPortalPage.jsx   ← Full user CRUD: search/filter, create,
+            │                           edit, reset-password, delete (Admin only)
+            └── SettingsPage.jsx     ← Theme picker (light/warm/dark, all users)
 ```
 
 ---
@@ -350,6 +406,10 @@ Empassetmanagement/
 | Auth           | POST   | /api/auth/admin/create-user                   | Admin         |
 | Auth           | POST   | /api/auth/generate-login/{emp_id}             | Admin         |
 | Auth           | GET    | /api/auth/employees-with-logins               | Admin         |
+| Auth           | GET    | /api/auth/users                               | Admin         |
+| Auth           | PUT    | /api/auth/users/{id}                          | Admin         |
+| Auth           | PUT    | /api/auth/users/{id}/reset-password           | Admin         |
+| Auth           | DELETE | /api/auth/users/{id}                          | Admin         |
 | Employees      | GET    | /api/employees/                               | User          |
 | Employees      | GET    | /api/employees/{id}                           | User          |
 | Employees      | GET    | /api/employees/{id}/assets                    | User          |
